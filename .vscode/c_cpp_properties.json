@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "/WAVE/apps/x86_64/eb/software/CUDA/13.0.0/include",
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "__CUDACC__"
+            ],
+            "compilerPath": "/WAVE/apps/x86_64/eb/software/CUDA/13.0.0/bin/nvcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

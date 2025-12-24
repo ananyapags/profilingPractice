@@ -1,0 +1,11 @@
+{
+    "C_Cpp.default.compilerPath": "/WAVE/apps/x86_64/eb/software/CUDA/13.0.0/bin/nvcc",
+    "cmake.sourceDirectory": "/WAVE/users2/unix/apagadala/profilingPractice/lectures/lecture_018/kernels",
+  
+    "files.associations": {
+      "*.cu": "cuda-cpp",
+      "*.cuh": "cuda-cpp"
+    },
+  
+    "C_Cpp.intelliSenseEngine": "Default"
+  }
