@@ -1,8 +1,8 @@
 # CUDA Profiling Practice
 
-This repository contains my ongoing practice while learning CUDA and getting more comfortable with compiling, running, and profiling GPU code on WAVE.
+This repository contains my ongoing work while learning CUDA and getting more comfortable with compiling, running, and profiling GPU code on WAVE.
 
-I’m using this repo as a working space to experiment with small examples, builds, and profiling workflows rather than as a finished project.
+I’m using this repo as a working space to experiment with small CUDA examples, build systems, and profiling workflows. It’s meant to track what I’m learning rather than serve as a finished or polished project.
 
 ---
 
@@ -12,10 +12,10 @@ I’m using this repo as a working space to experiment with small examples, buil
 Cloned from the GPU Mode GitHub. Contains lecture code and examples used for CUDA and GPU programming practice.
 
 ### `lectures/`
-Also from the GPU Mode GitHub. Includes additional lecture material and reference code.
+Additional lecture material from the GPU Mode GitHub, used alongside coursework and self-study.
 
 ### `profiling-cuda-in-torch/`
-Material from GPU Mode focused on profiling CUDA code in PyTorch. Used to understand how CUDA kernels behave inside higher-level frameworks.
+GPU Mode material focused on profiling CUDA kernels in PyTorch, mainly to understand how low-level GPU behavior shows up in higher-level frameworks.
 
 ### `UdemyCuda/`
 Small CUDA examples I’m working through to learn the basics.
@@ -38,10 +38,10 @@ This repo is mainly for:
 - experimenting with profiling tools
 - working through GPU Mode materials on real hardware
 
-This is a work-in-progress learning repo, not a polished library.
+This is a work-in-progress learning repository.
 
 ---
 
 ## Status
 
-Work in progress.
+In progress.
