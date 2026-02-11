@@ -1,22 +1,15 @@
 ############################################################
-# CUDA / C++ Build Artifacts
+# CUDA / C++ build artifacts ONLY (not source files)
 ############################################################
 *.o
-*.obj
 *.out
 *.exe
 *.a
 *.so
 *.dylib
 *.dll
-*.ptx
 *.cubin
 *.fatbin
-*.nvvp
-*.nsys-rep
-*.qdrep
-*.ii
-*.cu.cpp
 
 build/
 bin/
@@ -26,74 +19,23 @@ CMakeFiles/
 CMakeCache.txt
 Makefile
 
-############################################################
-# HPC / GPU Profiling / Runtime Junk
-############################################################
-nsight/
-profile/
-*.trace
-core.*
-*.log
-
-############################################################
-# LaTeX — ONLY final PDFs kept
-############################################################
 *.tex
 *.aux
-*.bbl
-*.bcf
-*.blg
-*.brf
-*.fdb_latexmk
+*.log
 *.fls
-*.idx
-*.ilg
-*.ind
-*.lof
-*.lot
-*.out
-*.run.xml
+*.fdb_latexmk
 *.synctex.gz
 *.toc
-*.nav
-*.snm
-*.vrb
-*.xdv
+*.out
 
-latex.out/
-texput.log
-
-# IMPORTANT:
-# PDFs intentionally NOT ignored so final compiled reports stay tracked
-
-############################################################
-# Editor / OS Junk
-############################################################
-.DS_Store
-Thumbs.db
 
 .vscode/
 .idea/
-*.swp
-*.swo
-*~
+.DS_Store
+Thumbs.db
 
-############################################################
-# Python / ML Experiments (optional)
-############################################################
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.env/
-venv/
-conda-env/
-.ipynb_checkpoints/
-
-############################################################
-# Experiment outputs (optional)
-############################################################
-results/
-outputs/
-checkpoints/
+*.nsys-rep
+*.qdrep
 logs/
+outputs/
+results/
