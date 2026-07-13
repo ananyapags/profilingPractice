@@ -1,0 +1,266 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{tcolorbox}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+
+\definecolor{secondary}{RGB}{230,240,255}
+\definecolor{warning}{RGB}{255,245,220}
+\definecolor{insight}{RGB}{235,255,240}
+
+\title{\textbf{NVIDIA Deep Learning Software Engineer Interview Review}\\
+Algorithmic Model Optimization (LLMs, Diffusion, TensorRT, TRT-LLM)}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\renewcommand{\arraystretch}{1.2}
+
+\section*{Role-Focused Quick Outline}
+\begin{itemize}[leftmargin=*]
+\item Model optimization: quantization, sparsity, pruning, distillation, NAS
+\item LLM inference bottlenecks: prefill vs decode, KV cache, batching
+\item PyTorch 2.0 stack: TorchDynamo, torch.export, torch.compile, FX/IR
+\item CUDA/TRT-LLM/Triton kernel-level performance optimization
+\item Multi-GPU inference: tensor, pipeline, sequence parallelism
+\item Profiling and debugging: Nsight Systems, Nsight Compute, PyTorch profiler
+\item Deployment platform thinking: automation, validation, rollback, observability
+\item High-probability interview Q\&A and final review cheat sheet
+\end{itemize}
+
+\section{Model Optimization Techniques}
+
+\subsection{Quantization (Highest Probability)}
+\begin{tcolorbox}[colback=secondary]
+\textbf{Core insight:} Quantization usually helps latency by reducing memory traffic first; raw compute savings are secondary unless kernels are optimized end-to-end.
+\end{tcolorbox}
+
+\subsubsection*{PTQ vs QAT}
+\begin{center}
+\begin{tabular}{|p{0.26\linewidth}|p{0.33\linewidth}|p{0.33\linewidth}|}
+\hline
+\textbf{Method} & \textbf{Advantages} & \textbf{Tradeoffs} \\
+\hline
+PTQ (Post-Training Quantization) & Fast to apply, low engineering overhead & Higher accuracy risk, calibration quality matters \\
+\hline
+QAT (Quantization-Aware Training) & Better accuracy retention at low bit widths & Requires retraining and more MLOps effort \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Why quantization may fail to improve latency:}
+\begin{itemize}[leftmargin=*]
+\item Unsupported INT8/FP8 kernels force fallback to FP16/FP32
+\item Dequantize/requantize boundaries add memory and launch overhead
+\item Fusion opportunities are lost due to mixed dtypes
+\item Workload is already compute-saturated at target batch size
+\item Poor calibration causes unstable activations and recovery logic
+\end{itemize}
+
+\subsection{Sparsity and Pruning}
+\begin{center}
+\begin{tabular}{|p{0.22\linewidth}|p{0.35\linewidth}|p{0.35\linewidth}|}
+\hline
+\textbf{Type} & \textbf{Description} & \textbf{Practical impact} \\
+\hline
+Unstructured sparsity & Removes individual weights & Often limited speedup unless specialized sparse kernels exist \\
+\hline
+Structured sparsity & Removes heads/channels/blocks & Better hardware mapping and real latency wins \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{tcolorbox}[colback=insight]
+\textbf{Interview signal:} ``Sparsity is only useful when compiler + kernel + hardware path is sparse-aware.''
+\end{tcolorbox}
+
+\subsection{Distillation and NAS}
+\begin{itemize}[leftmargin=*]
+\item Distillation compresses quality into smaller/faster student models
+\item NAS can discover hardware-friendly blocks but has high search cost
+\item For production, emphasize \textbf{search cost vs deployment ROI}
+\end{itemize}
+
+\section{LLM Inference Optimization}
+
+\subsection{Prefill vs Decode}
+\begin{center}
+\begin{tabular}{|p{0.2\linewidth}|p{0.28\linewidth}|p{0.44\linewidth}|}
+\hline
+\textbf{Phase} & \textbf{Primary bottleneck} & \textbf{Best optimization levers} \\
+\hline
+Prefill & GEMM compute + activation memory & Better batching, tensor core utilization, graph capture, fusion \\
+\hline
+Decode & KV-cache bandwidth/latency & Paged KV cache, attention kernel fusion, reduced precision cache, continuous batching \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Parallelism and Sharding}
+\begin{itemize}[leftmargin=*]
+\item Tensor parallelism: split matrix dimensions across GPUs
+\item Pipeline parallelism: split layers across stages
+\item Sequence parallelism: split sequence/tokens across devices
+\item Data parallel inference: replicate model and route requests
+\end{itemize}
+
+\textbf{Scaling blockers:}
+\begin{itemize}[leftmargin=*]
+\item NCCL communication overhead dominates after a point
+\item Interconnect mismatch (PCIe vs NVLink vs InfiniBand)
+\item Micro-batch too small to hide communication
+\item Host-side scheduling and data pipeline stalls
+\end{itemize}
+
+\section{GPU Architecture and Profiling}
+
+\subsection{Performance Limits}
+\begin{center}
+\begin{tabular}{|p{0.3\linewidth}|p{0.62\linewidth}|}
+\hline
+\textbf{Constraint} & \textbf{Typical cause in LLM inference} \\
+\hline
+Memory bandwidth & Large weights + KV-cache streaming each decode step \\
+\hline
+Compute throughput & Dense GEMMs and attention math in prefill \\
+\hline
+Kernel launch overhead & Too many tiny kernels or poor fusion \\
+\hline
+Low occupancy & Register/shared-memory pressure limits active warps \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Essential Tools}
+\begin{center}
+\begin{tabular}{|p{0.3\linewidth}|p{0.62\linewidth}|}
+\hline
+\textbf{Tool} & \textbf{What you use it for} \\
+\hline
+Nsight Systems & End-to-end timeline, launch gaps, communication overlap \\
+\hline
+Nsight Compute & Kernel-level metrics: occupancy, memory transactions, tensor core usage \\
+\hline
+PyTorch Profiler & Operator hotspots, shape-dependent regressions, eager vs compiled comparison \\
+\hline
+nvidia-smi/DCGM & Device health, utilization, memory pressure, throttling signals \\
+\hline
+\end{tabular}
+\end{center}
+
+\textbf{Benchmark hygiene checklist:}
+\begin{itemize}[leftmargin=*]
+\item Warmup iterations before measurement
+\item Synchronize correctly for GPU timing
+\item Report p50/p95 and throughput together
+\item Fix prompt length, output length, and batch policy
+\item Separate prefill and decode metrics
+\end{itemize}
+
+\section{PyTorch 2.0 to Deployment Stack}
+\begin{itemize}[leftmargin=*]
+\item TorchDynamo captures graphs from eager Python programs
+\item \texttt{torch.export} creates a normalized, portable graph representation
+\item \texttt{torch.compile} applies backend optimizations and fusion
+\item Exported graphs feed TensorRT/TRT-LLM style automated deployment pipelines
+\end{itemize}
+
+\begin{tcolorbox}[colback=secondary]
+\textbf{Great interview framing:} ``I use graph capture to reduce Python overhead, unlock fusion, and produce stable artifacts for automated deployment and regression testing.''
+\end{tcolorbox}
+
+\section{High-Probability Interview Q\&A (Role Specific)}
+\begin{center}
+\begin{tabular}{|p{0.34\linewidth}|p{0.58\linewidth}|}
+\hline
+\textbf{Question} & \textbf{Strong answer (concise)} \\
+\hline
+How would you optimize LLM inference end-to-end? & Baseline first, split prefill/decode metrics, find top kernels with Nsight, optimize memory path (KV cache + fusion), then validate quality and rollback safety. \\
+\hline
+Why does GPU utilization look low during serving? & Decode is often memory-bound and request-driven; low SM utilization can still be optimal if latency is constrained. Check memory BW, kernel launch gaps, and batching policy. \\
+\hline
+When does quantization hurt? & If kernels fall back, if dtype boundaries add conversion overhead, or if quality drops force rework. I verify kernel coverage and quality gates before rollout. \\
+\hline
+TorchDynamo vs torch.export? & Dynamo captures runtime graphs from Python execution; export gives a cleaner, standardized graph for stable deployment transformations. \\
+\hline
+How do you debug scaling stalls after adding GPUs? & Measure compute/comm overlap, inspect NCCL traces, verify topology and message sizes, and adjust parallelism mode and micro-batch size. \\
+\hline
+What makes attention kernels fast? & Coalesced memory access, fused ops, low overhead KV-cache reads/writes, and good tensor core utilization for compatible shapes/dtypes. \\
+\hline
+How do you choose tensor vs pipeline parallelism? & Tensor parallel for large GEMMs and balanced layers; pipeline for very deep models or memory limits. Choice depends on interconnect and latency target. \\
+\hline
+How do you ensure safe deployment of optimizations? & Keep golden baselines, automated accuracy/perf gates, versioned artifacts, canary rollout, and fast rollback if SLOs or quality drift regress. \\
+\hline
+What would you optimize in TRT/TRT-LLM integration? & Graph lowering coverage, kernel selection heuristics, KV-cache policies, and reproducible benchmark harnesses across model families. \\
+\hline
+How do you reason about roofline for transformers? & Decode tends toward memory roof due to KV traffic; prefill can approach compute roof with larger batches and fused GEMM-heavy paths. \\
+\hline
+How do you improve user-perceived latency? & Continuous batching, token streaming, smart scheduling, and prioritizing p95 TTFT/token latency over only peak throughput. \\
+\hline
+What tests are mandatory for optimization code? & Numerical parity tolerances, shape/dtype coverage, regression benchmarks, and stress tests for long-context KV-cache behavior. \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{System Design Prompts You Should Practice}
+\begin{enumerate}[leftmargin=*]
+\item Design an automated model optimization service from PyTorch model input to TensorRT/TRT-LLM deployment artifact.
+\item Design multi-tenant LLM serving with dynamic batching, per-request QoS, and safe rollout.
+\item Design a profiling pipeline that automatically flags kernel regressions after code changes.
+\item Design model sharding strategy for long-context inference across 8+ GPUs.
+\end{enumerate}
+
+\section{Software Engineering Signals for This Role}
+\begin{itemize}[leftmargin=*]
+\item Strong debugging and performance analysis loop
+\item Modular interfaces across model, compiler, kernel, runtime layers
+\item Test design that catches numerical and performance regressions
+\item Clear documentation and reproducible benchmark methodology
+\end{itemize}
+
+\section{Final Table Cheat Sheet: What to Review}
+\begin{longtable}{|p{0.16\linewidth}|p{0.09\linewidth}|p{0.24\linewidth}|p{0.31\linewidth}|}
+\hline
+\textbf{Topic} & \textbf{Priority} & \textbf{What to be ready to explain} & \textbf{Detailed explanation to prepare} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Topic} & \textbf{Priority} & \textbf{What to be ready to explain} & \textbf{Detailed explanation to prepare} \\
+\hline
+\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+Quantization (INT8/FP8, PTQ/QAT) & High & Accuracy tradeoffs, kernel coverage, why latency may not improve & Explain that speedup comes only when the full path is quantized: graph lowering, kernels, and memory format. Be ready to discuss calibration datasets, sensitive ops (LayerNorm/Softmax), and fallback overhead from dequantize/requantize boundaries. \\
+\hline
+KV cache and attention optimization & High & Paged KV, decode bottlenecks, memory layout and bandwidth implications & Decode is usually memory-bound because each new token reads prior K/V states. Cover paged KV cache, contiguous block layout, cache precision choices, and fused attention kernels to reduce memory traffic and kernel launch overhead. \\
+\hline
+PyTorch 2.0 compiler stack & High & TorchDynamo, torch.export, torch.compile, graph capture value & Clarify differences: TorchDynamo captures runtime graphs, \texttt{torch.export} creates stable deployable graphs, and \texttt{torch.compile} applies backend optimizations/fusion. Explain why this reduces Python overhead and improves portability to deployment backends. \\
+\hline
+TensorRT/TRT-LLM basics & High & Deployment path, engine building, optimization and benchmarking workflow & Walk through model export, graph transformation, engine build/tactic selection, runtime execution, and regression validation. Mention dynamic shapes, precision configuration, plugin coverage, and performance-quality checks before rollout. \\
+\hline
+CUDA/Triton kernel fundamentals & High & Occupancy, memory coalescing, fusion, tensor core-friendly tiling & Be ready to reason from bottleneck to kernel design: choose tile sizes, manage shared memory/register pressure, maximize coalesced loads, and map compute to tensor cores. Explain tradeoffs between occupancy and per-thread resource usage. \\
+\hline
+Distributed inference parallelism & High & Tensor/pipeline/sequence parallelism and communication bottlenecks & Explain when to choose each parallelism mode based on model size, latency target, and topology. Discuss all-reduce/all-gather costs, overlap strategies, micro-batch tuning, and why scaling can plateau when communication dominates compute. \\
+\hline
+Profiling toolchain & High & Nsight Systems vs Nsight Compute vs PyTorch profiler usage & Present a profiling workflow: use Nsight Systems for end-to-end timeline and stalls, Nsight Compute for kernel metrics (occupancy, memory transactions, tensor core utilization), and PyTorch profiler for operator-level hotspots tied to model code. \\
+\hline
+GPU architecture essentials & Medium & SMs, warps, memory hierarchy, compute vs bandwidth limits & Explain how warp scheduling hides latency, how memory hierarchy affects throughput, and why roofline thinking helps classify kernels as compute- or memory-bound. Connect this directly to transformer prefill (more compute-heavy) vs decode (more bandwidth-bound). \\
+\hline
+Benchmark methodology & High & Warmup, synchronization, p50/p95, TTFT, tokens/sec, fair comparisons & Be precise on measurement hygiene: fixed prompt/output lengths, warmup passes, synchronized timing, percentile reporting, and separate prefill/decode analysis. Explain that fair comparisons require equal batching policy, model config, and precision settings. \\
+\hline
+Reliability and deployment safety & Medium & Canary rollout, rollback, artifact versioning, validation gates & Describe production safeguards: versioned optimization artifacts, automated numerical/performance gates, canary release with SLO monitoring, and deterministic rollback. Include how to track drift and regressions across model and runtime updates. \\
+\hline
+\end{longtable}
+
+\begin{tcolorbox}[colback=insight]
+\textbf{Final takeaway:} For this NVIDIA role, your strongest interview narrative is: \textit{profile first, optimize where bottlenecks are real, and ship safe automated deployment at scale.}
+\end{tcolorbox}
+
+\end{document}

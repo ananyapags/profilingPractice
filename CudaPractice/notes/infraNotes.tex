@@ -1,0 +1,520 @@
+\documentclass[11pt]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PACKAGES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{array}
+\usepackage{booktabs}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% COLOR SCHEME (MEMORY OPTIMIZED: black/blue/red)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\definecolor{myblue}{RGB}{20,90,160}
+\definecolor{myred}{RGB}{180,40,40}
+\newcommand{\blue}[1]{\textcolor{myblue}{#1}}
+\newcommand{\red}[1]{\textcolor{myred}{#1}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=myblue,
+  urlcolor=myblue,
+  citecolor=myblue
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SECTION STYLING
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\titleformat{\section}
+{\large\bfseries\color{myblue}}
+{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\bfseries\color{myblue}}
+{\thesubsection}{1em}{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% MEMORY BOXES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newenvironment{bluebox}
+{\vspace{6pt}\noindent\begin{tikzpicture}
+\node[
+draw=myblue, line width=1pt,
+rounded corners=6pt,
+inner sep=8pt,
+text width=\dimexpr\linewidth-20pt\relax
+]\bgroup
+\begin{minipage}{\dimexpr\linewidth-32pt\relax}
+\blue{\textbf{Key Idea}}\par\vspace{4pt}}
+{\end{minipage}\egroup;\end{tikzpicture}\vspace{6pt}}
+
+\newenvironment{redbox}
+{\vspace{6pt}\noindent\begin{tikzpicture}
+\node[
+draw=myred, line width=1pt,
+rounded corners=6pt,
+inner sep=8pt,
+text width=\dimexpr\linewidth-20pt\relax
+]\bgroup
+\begin{minipage}{\dimexpr\linewidth-32pt\relax}
+\red{\textbf{Important}}\par\vspace{4pt}}
+{\end{minipage}\egroup;\end{tikzpicture}\vspace{6pt}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% NOTE SPACE COMMAND
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\notespace}{
+\vspace{0.8cm}
+\hrule
+\vspace{0.8cm}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SMALL HELPERS (for clean lists)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setlist[itemize]{leftmargin=1.3em}
+\newcommand{\term}[1]{\blue{\textbf{#1}}}
+\newcommand{\danger}[1]{\red{\textbf{#1}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+\begin{center}
+{\LARGE \blue{AI Infrastructure / GPU Systems Notes}}\\
+\vspace{4pt}
+{\small Live Lecture Notes Template}
+\end{center}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Module 2 — AI-Centric Data Center}
+
+\subsection{Inside an AI Data Center}
+There is compute so that whatever request comes in, we can process it. One server may not be enough, so we need multiple compute nodes and a network to communicate between them. Then we need storage for the data.
+
+Support infrastructure includes power, cooling, security, etc.
+
+\begin{bluebox}
+\textbf{AI data center =} \blue{compute} + \blue{network} + \blue{storage} + \blue{support infra (power/cooling/security)}.
+\end{bluebox}
+
+\textbf{Key constraints when deploying high-density GPU workloads:}
+\begin{itemize}
+\item \term{Power:} limited power capacity per rack; GPUs need a high, consistent power supply.
+\item \term{Heat:} cooling capacity of racks and rooms is a bottleneck.
+\item \term{Space:} GPUs at scale require a large physical footprint (and good airflow/layout).
+\end{itemize}
+\notespace
+
+\subsection{New Paradigms}
+\begin{itemize}
+\item \term{GPUs and parallelism:} scale performance by running many operations at once.
+\item \term{Chiplets:} multiple smaller chips combined for scalability (yield/cost/perf benefits).
+\item \term{3D stacking:} vertical layers to boost density (closer memory/compute).
+\item \term{AI accelerators:} custom silicon for massive speedups on specific workloads.
+\end{itemize}
+\notespace
+
+\subsection{Data Processing Unit (DPU)}
+Handles \textbf{data-centric} tasks:
+
+\textbf{Networking}
+\begin{itemize}
+\item packet processing
+\item load balancing
+\item overlay/underlay networking
+\item RDMA (remote direct memory access)
+\end{itemize}
+
+\textbf{Storage}
+\begin{itemize}
+\item compression/decompression
+\item encryption for data at rest
+\item RAID/erasure coding
+\item data dedupe
+\end{itemize}
+
+\textbf{Security}
+\begin{itemize}
+\item firewalling \& packet inspection
+\item IPsec/TLS offload
+\item multi-tenant isolation
+\item zero trust enforcement
+\end{itemize}
+
+\begin{bluebox}
+\textbf{Why DPUs exist:} offload data movement + infrastructure work from the CPU so the CPU/GPU can focus on application logic and training/inference.
+\end{bluebox}
+
+\subsubsection*{\blue{CPU vs GPU vs DPU (cleaned + clarified)}}
+CPUs are best at \blue{decision-making and control flow}, but they don’t scale well to thousands of data-movement tasks.
+
+GPUs are best for \blue{AI training and parallel computation}, but are not ideal for OS-level operations and general-purpose control logic.
+
+DPUs take care of \blue{data movement and infrastructure offload}. They are best at the networking/storage/security tasks above, but not good for running heavy application compute.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.18\linewidth}|p{0.36\linewidth}|p{0.36\linewidth}|}
+\hline
+\textbf{Unit} & \textbf{Best at} & \textbf{Not great at} \\
+\hline
+CPU & control flow, OS, scheduling, general logic & massive parallel math throughput \\
+\hline
+GPU & matrix math, parallel compute, training/inference kernels & branchy logic, OS responsibilities \\
+\hline
+DPU & networking/storage/security offload, RDMA pipelines & heavy application compute \\
+\hline
+\end{tabular}
+\end{center}
+\notespace
+
+\subsection{Networking}
+We need separate networks for different tasks. Separation helps with \blue{performance isolation}, \blue{latency sensitivity}, \blue{security}, \blue{scaling}, and \blue{failure robustness}.
+\notespace
+
+\subsection{Network Fabric}
+There is \textbf{logical} and \textbf{physical} networking.
+
+\textbf{Compute fabric:}
+\begin{itemize}
+\item Designed primarily for GPU-to-GPU communication.
+\item Implemented through InfiniBand, RoCE, or NVLink (depending on scope).
+\item Requirements: extremely high throughput, low latency, and scalability.
+\end{itemize}
+
+\textbf{In-band management network (configuration/control within infra):}
+\begin{itemize}
+\item Handles control-plane management: SSH, job scheduling, access to code repos.
+\item Typically Ethernet-based leaf/spine, with logical separation (VLANs).
+\item Requirements: reliability, security/traffic isolation, moderate bandwidth.
+\end{itemize}
+
+\textbf{Out-of-band (OOB) management network:}
+\begin{itemize}
+\item Provides management even if the OS is down.
+\item Uses a \term{Baseboard Management Controller (BMC)} to remotely manage the server (monitoring/logging/power cycling).
+\item Requirements: always available, strong security/access control, separate physical ports, low-speed switches.
+\end{itemize}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.22\linewidth}|p{0.34\linewidth}|p{0.34\linewidth}|}
+\hline
+\textbf{Network} & \textbf{Purpose} & \textbf{Key requirements} \\
+\hline
+Compute & GPU$\leftrightarrow$GPU traffic (training/inference) & \danger{low latency}, \danger{high throughput}, scalable \\
+\hline
+In-band mgmt & SSH, scheduling, repos, config & reliable, secure isolation, moderate BW \\
+\hline
+OOB mgmt & manage server if OS down (BMC) & \danger{always on}, strong access control \\
+\hline
+\end{tabular}
+\end{center}
+
+\notespace
+
+\subsection{Ethernet vs InfiniBand}
+\textbf{Ethernet:}
+\begin{itemize}
+\item General-purpose networking; uses TCP/IP stack.
+\item Universally supported.
+\item Typical speeds: 1--400 Gbps (depends on generation and deployment).
+\end{itemize}
+
+\textbf{InfiniBand:}
+\begin{itemize}
+\item Ultra-fast with specialized design for HPC.
+\item Lower latency; supports RDMA (bypass CPU with low overhead).
+\item Typical speeds: 10--400+ Gbps (depends on generation).
+\item Requires specialized drivers; often more expensive.
+\end{itemize}
+
+\begin{bluebox}
+\textbf{Simple mental model:} Ethernet = universal + flexible. InfiniBand = specialized + low-latency HPC.
+\end{bluebox}
+\notespace
+
+\subsection{Converged Ethernet}
+Converged LAN + SAN + HPC.
+\begin{itemize}
+\item Can use RDMA over Ethernet (e.g., RoCE) to bypass CPU.
+\end{itemize}
+\notespace
+
+\subsection{Storage}
+A data center uses \term{tiered storage}:
+
+\begin{itemize}
+\item \textbf{(1) NVMe SSD (local):} non-volatile local storage for fast I/O during training/inference; limited capacity but very fast.
+\item \textbf{(2) Clustered storage / parallel file system:} shared high-speed access across many GPU nodes in a cluster.
+\item \textbf{(3) Network file system (NFS):} distribute small datasets, configs, and scripts across nodes.
+\item \textbf{(4) Object storage:} long-term storage for massive datasets, model checkpoints, and logs.
+\end{itemize}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.20\linewidth}|p{0.42\linewidth}|p{0.30\linewidth}|}
+\hline
+\textbf{Tier} & \textbf{Used for} & \textbf{Tradeoff} \\
+\hline
+Local NVMe & hot data + fast scratch I/O & fastest, limited capacity \\
+\hline
+Parallel FS & shared high-speed access & scalable, more complex \\
+\hline
+NFS & configs/scripts/small data & simple, not for heavy throughput \\
+\hline
+Object store & checkpoints/logs/big datasets & durable + cheap, higher latency \\
+\hline
+\end{tabular}
+\end{center}
+\notespace
+
+\subsection{Cloud vs On-Prem}
+\textbf{Cloud:}
+\begin{itemize}
+\item Accessibility: no need to buy infrastructure.
+\item Pay-as-you-go.
+\item Flexible scaling.
+\item Control depends on the provider.
+\end{itemize}
+
+\textbf{On-prem:}
+\begin{itemize}
+\item Data security and sovereignty.
+\item High upfront cost.
+\item Limited by owned hardware.
+\item Full control over data and systems.
+\end{itemize}
+\notespace
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Module 3 — NVIDIA Technology Stack}
+
+\subsection{NVIDIA AI Leadership}
+\notespace
+
+\subsection{Technology Stack Overview}
+\notespace
+
+\subsection{Layer 1 — Physical Infrastructure}
+Here are the layers in NVIDIA infrastructure:
+\begin{enumerate}
+\item \term{Physical layer:} GPU, data center, NICs, DPU
+\item \term{Data movement \& I/O acceleration:} NVLink, RDMA, storage, HPC fabrics (InfiniBand)
+\item \term{OS / drivers / virtualization:} GPU drivers
+\item \term{Core libraries:} CUDA, NCCL
+\item \term{Monitoring \& management:} NVIDIA-SMI, etc.
+\item \term{Applications / vertical solutions:} NVIDIA NIMs, enterprise stacks
+\end{enumerate}
+\notespace
+
+\subsubsection{SuperPOD}
+An architecture implementation of multiple DGX nodes: a scalable AI system.
+
+\textbf{Rough flow:} jump box $\rightarrow$ management nodes $\rightarrow$ InfiniBand compute fabric $\rightarrow$ compute nodes $\rightarrow$ InfiniBand storage fabric $\rightarrow$ high-speed storage
+\notespace
+
+\subsubsection{ConnectX Networking}
+Think of NICs as high-performance interconnect adapters for InfiniBand/Ethernet, used for reliable high-speed networking.
+\notespace
+
+\subsection{GPU Architecture Details}
+\notespace
+
+\subsubsection{GPU Cores}
+\begin{itemize}
+\item \term{CUDA cores:} general compute + graphics rendering; flexible for general parallel tasks.
+\item \term{Tensor cores:} deep learning acceleration; major throughput for training/inference (often large speedups for dense math).
+\item \term{Ray tracing cores:} real-time ray tracing/light simulation (graphics realism: shadows/reflections).
+\end{itemize}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.22\linewidth}|p{0.52\linewidth}|p{0.18\linewidth}|}
+\hline
+\textbf{Core type} & \textbf{What it does} & \textbf{Where used} \\
+\hline
+CUDA core & general-purpose parallel compute & HPC, graphics, kernels \\
+\hline
+Tensor core & dense matrix math acceleration & training, inference \\
+\hline
+RT core & ray/triangle intersection + lighting & graphics \\
+\hline
+\end{tabular}
+\end{center}
+
+\notespace
+
+\subsection{Layer 2 — Data Movement / IO}
+\notespace
+
+\subsubsection{NVLink}
+Connection between multiple GPUs or (in some systems) CPU$\leftrightarrow$GPU. PCIe is slower; NVLink is a higher-bandwidth interconnect with both hardware and software components.
+
+\begin{itemize}
+\item NVLink bridges: consumer and professional graphics cards (some generations).
+\item Integrated NVLink: NVLink inside the silicon.
+\item NVSwitch: for large-scale multi-GPU systems.
+\end{itemize}
+\notespace
+
+\subsubsection{InfiniBand}
+High-performance connection used for distributed GPU clusters (fast inter-node communication). Often paired with RDMA for low overhead and high throughput.
+\notespace
+
+\subsubsection{RDMA}
+Start with DMA: a hardware feature that lets supported devices transfer data to/from memory without the CPU acting as the middleman.
+
+\begin{bluebox}
+\textbf{DMA:} device $\leftrightarrow$ local host memory without CPU copies.\\
+\textbf{RDMA:} device $\leftrightarrow$ \emph{remote} host memory (across the network) with low CPU overhead.
+\end{bluebox}
+
+RDMA is an extension of DMA: devices can bypass the CPU and access not only local host memory but also memory on another host.
+
+Example mental model: host1 GPU $\rightarrow$ host2 system memory (via RDMA).
+\notespace
+
+\subsubsection{GPUDirect}
+NVIDIA uses RDMA to implement GPUDirect features.
+
+\textbf{GPUDirect RDMA:}
+\begin{itemize}
+\item Across hosts: host1 GPU memory $\rightarrow$ RDMA NIC $\rightarrow$ network $\rightarrow$ RDMA NIC $\rightarrow$ host2 GPU memory.
+\item Bypasses OS, system memory, and CPU copies.
+\item Ultra-low-latency networking between GPU nodes.
+\item Needs an NVIDIA GPU + RDMA-capable NIC.
+\end{itemize}
+
+\textbf{GPUDirect Storage:}
+\begin{itemize}
+\item Within a host (and sometimes via storage fabric): GPU $\leftrightarrow$ storage, bypassing CPU bottlenecks.
+\item High-throughput loading of large datasets into GPUs (e.g., NVMe RAID, parallel storage).
+\item Needs an NVIDIA GPU + NVMe/parallel storage setup.
+\end{itemize}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.26\linewidth}|p{0.46\linewidth}|p{0.20\linewidth}|}
+\hline
+\textbf{Feature} & \textbf{Data path (simplified)} & \textbf{Goal} \\
+\hline
+GPUDirect RDMA & GPU mem $\leftrightarrow$ NIC $\leftrightarrow$ network $\leftrightarrow$ NIC $\leftrightarrow$ GPU mem & low latency, avoid CPU copies \\
+\hline
+GPUDirect Storage & GPU mem $\leftrightarrow$ NVMe / storage fabric & feed GPUs faster (I/O) \\
+\hline
+\end{tabular}
+\end{center}
+
+\notespace
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Layer 3 — OS / Drivers / Virtualization}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\notespace
+
+\subsubsection{GPU Drivers}
+Software that connects NVIDIA GPUs with the operating system and applications.
+\begin{itemize}
+\item Enables GPU acceleration for AI/HPC/graphics.
+\item Manages GPU resources, memory, and performance.
+\item Supports containers, virtualization, and multi-GPU setups.
+\end{itemize}
+\notespace
+
+\subsubsection{Virtualization}
+If a physical server has a GPU and CPU, we can add a virtualization layer and create a virtual CPU/VM and a virtual GPU.
+
+Virtualization matters because multiple users/workloads can share the same hardware efficiently. It enables isolation, flexible management, better utilization, and reproducibility.
+
+\textbf{CPU virtualization:} divides CPU resources into multiple VMs, each running its own OS and applications with minimal interference.
+
+\textbf{GPU virtualization:} more complex; requires techniques like GPU pass-through, vGPU, or API interception to safely share a GPU across workloads (common in cloud environments).
+\notespace
+
+\subsubsection{MIG vs vGPU}
+\textbf{vGPU (software virtualization):}
+\begin{itemize}
+\item Physical GPU $\rightarrow$ hypervisor (NVIDIA virtualization software) $\rightarrow$ virtual GPUs (up to many) $\rightarrow$ VMs.
+\item Hypervisor-based (e.g., VMware); uses guest drivers + a vGPU manager.
+\end{itemize}
+
+\textbf{MIG (Multi-Instance GPU):}
+\begin{itemize}
+\item Physical GPU $\rightarrow$ Linux + NVIDIA tools (e.g., \texttt{nvidia-smi}) + container runtime (Docker) $\rightarrow$ MIG instances (e.g., up to 7 on some GPUs) $\rightarrow$ containers.
+\item Hardware-enforced strong isolation; common for data centers, HPC, AI/ML containers.
+\end{itemize}
+
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{|p{0.22\linewidth}|p{0.34\linewidth}|p{0.34\linewidth}|}
+\hline
+\textbf{Tech} & \textbf{Isolation} & \textbf{Typical usage} \\
+\hline
+vGPU & software-enforced (hypervisor) & VM environments, cloud multi-tenant VMs \\
+\hline
+MIG & hardware-enforced & containers, HPC/AI clusters, strong partitioning \\
+\hline
+\end{tabular}
+\end{center}
+
+\notespace
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Layer 4 — Libraries}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\notespace
+
+\subsubsection{cuDNN / NCCL}
+\textbf{NCCL:} multi-GPU communication library that provides abstractions and optimizes patterns of communication between many GPUs.
+
+Think of it like a traffic management system: it coordinates transfers and collective operations (e.g., gradient synchronization) across many GPUs.
+
+\notespace
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Layer 5 — Monitoring}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\notespace
+
+\subsubsection{NVIDIA-SMI}
+Used for quick GPU monitoring and basic management on a single node. It reports GPU utilization and memory usage.
+\notespace
+
+\subsubsection{BCM (Base Command Manager)}
+Manage, monitor, and orchestrate GPU resources and workloads across an entire AI data center:
+\begin{itemize}
+\item Cluster resource utilization, infra health, job status, user quotas, workload performance.
+\item Management: firmware configs, power policies, software updates, provisioning, scheduling, allocation, deployments.
+\item Interfaces: CLI, web UI, REST API.
+\end{itemize}
+
+Installation/deployment is typically an enterprise multi-component system requiring dedicated management nodes.
+
+\subsubsection*{\blue{Monitoring capabilities (cleaned)}}
+\begin{itemize}
+\item CPU, NVIDIA GPUs, NVIDIA networking, storage (NFS, clusters, NVMe), workloads (AI/HPC).
+\end{itemize}
+
+\subsubsection*{\blue{Management/config capabilities (cleaned)}}
+\begin{itemize}
+\item GPU firmware configs, power policies, allocation.
+\item Workload submission/orchestration through Slurm/Kubernetes.
+\end{itemize}
+
+\notespace
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}

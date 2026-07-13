@@ -1,0 +1,2368 @@
+\documentclass[12pt]{article}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PACKAGES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{colortbl}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable}
+\usepackage{listings}
+\usepackage[normalem]{ulem}
+\lstdefinelanguage{yaml}{
+  basicstyle=\ttfamily\small,
+  morecomment=[l]{\#},
+  morestring=[b]",
+  sensitive=true
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% COLOR SCHEME (high-contrast, consistent theme)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\definecolor{Navy}{RGB}{16,52,96}
+\definecolor{Teal}{RGB}{0,132,105}
+\definecolor{Brick}{RGB}{183,48,46}
+\definecolor{Amber}{RGB}{180,112,0}
+\definecolor{Slate}{RGB}{54,65,82}
+\definecolor{Steel}{RGB}{74,89,116}
+\definecolor{Forest}{RGB}{32,120,80}
+\definecolor{Ink}{RGB}{22,32,46}
+\definecolor{PaperBlue}{RGB}{235,244,255}
+\definecolor{PaperTeal}{RGB}{232,249,242}
+\definecolor{PaperRed}{RGB}{255,239,239}
+\definecolor{PaperAmber}{RGB}{255,247,232}
+\definecolor{PaperGray}{RGB}{245,247,250}
+
+\newcommand{\blue}[1]{\textcolor{Navy}{#1}}
+\newcommand{\red}[1]{\textcolor{Brick}{#1}}
+\newcommand{\green}[1]{\textcolor{Teal}{#1}}
+\newcommand{\term}[1]{\textbf{\textcolor{Navy}{#1}}}
+\newcommand{\warn}[1]{\textbf{\textcolor{Brick}{#1}}}
+\newcommand{\focus}[1]{\textbf{\textit{\textcolor{Teal}{#1}}}}
+\newcommand{\keysent}[1]{\textbf{\textit{\uline{#1}}}}
+\let\origtextbf\textbf
+\renewcommand{\textbf}[1]{\origtextbf{\textit{#1}}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=Steel,
+  urlcolor=Teal
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SECTION STYLING
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\titleformat{\section}
+{\LARGE\bfseries\color{Navy}}
+{\thesection}{1em}{}
+
+\titleformat{\subsection}
+{\Large\bfseries\color{Teal}}
+{\thesubsection}{1em}{}
+
+\titleformat{\subsubsection}
+{\large\bfseries\itshape\color{Steel}}
+{\thesubsubsection}{1em}{}
+
+\titlespacing*{\section}{0pt}{1.2em}{0.6em}
+\titlespacing*{\subsection}{0pt}{0.9em}{0.4em}
+\titlespacing*{\subsubsection}{0pt}{0.7em}{0.25em}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% BOXES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newtcolorbox{bluebox}[1]{
+breakable,
+colback=PaperBlue,
+colframe=Navy,
+coltitle=white,
+colbacktitle=Navy,
+arc=2mm,
+boxrule=1.0pt,
+left=1.4mm,right=1.4mm,top=1.2mm,bottom=1.2mm,
+title=#1,
+fonttitle=\bfseries\large
+}
+
+\newtcolorbox{redbox}[1]{
+breakable,
+colback=PaperRed,
+colframe=Brick,
+coltitle=white,
+colbacktitle=Brick,
+arc=2mm,
+boxrule=1.0pt,
+left=1.4mm,right=1.4mm,top=1.2mm,bottom=1.2mm,
+title=#1,
+fonttitle=\bfseries\large
+}
+
+\newtcolorbox{greenbox}[1]{
+breakable,
+colback=PaperTeal,
+colframe=Teal,
+coltitle=white,
+colbacktitle=Teal,
+arc=2mm,
+boxrule=1.0pt,
+left=1.4mm,right=1.4mm,top=1.2mm,bottom=1.2mm,
+title=#1,
+fonttitle=\bfseries\large
+}
+
+\renewcommand{\arraystretch}{1.28}
+\setlength{\tabcolsep}{6pt}
+\arrayrulecolor{Slate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% GLOBAL READABILITY SETTINGS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.22em,topsep=0.35em,label=\textcolor{Teal}{\textbullet}}
+\setlist[enumerate]{leftmargin=1.6em,itemsep=0.26em,topsep=0.35em}
+\setlength{\parskip}{0.18em}
+\setlength{\parindent}{0pt}
+\linespread{1.08}
+
+\lstset{
+  basicstyle=\ttfamily\small\color{Ink},
+  keywordstyle=\bfseries\color{Navy},
+  commentstyle=\itshape\color{Forest},
+  stringstyle=\color{Brick},
+  numberstyle=\scriptsize\color{Steel},
+  numbers=left,
+  numbersep=7pt,
+  frame=single,
+  rulecolor=\color{Steel},
+  framerule=0.5pt,
+  backgroundcolor=\color{PaperGray},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2,
+  xleftmargin=0.4em,
+  xrightmargin=0.4em
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DOC HEADER
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{\blue{NVIDIA AI/ML Infrastructure -- Study Review}}
+\author{}
+\date{}
+
+\begin{document}
+\color{Ink}
+\maketitle
+
+\tableofcontents
+\newpage
+
+% ======================================================
+\section{Mental Model of AI/ML Infrastructure}
+% ======================================================
+
+\begin{bluebox}{Layered Stack}
+Hardware $\rightarrow$ GPU Architecture $\rightarrow$ Network $\rightarrow$ Storage $\rightarrow$ Scheduler $\rightarrow$ Runtime $\rightarrow$ Framework $\rightarrow$ Model $\rightarrow$ Experiment Tracking
+\end{bluebox}
+
+\begin{greenbox}{Section 1 at a Glance (Recall Outline)}
+\begin{enumerate}[leftmargin=1.3em]
+\item \textbf{Hardware:} How cluster and node topology is wired
+\item \textbf{GPU Architecture:} SM, warp, memory hierarchy, precision units
+\item \textbf{Network:} Ethernet vs InfiniBand, RDMA/GPUDirect, management planes
+\item \textbf{Storage:} Fast-to-slow hierarchy and I/O bottleneck signs
+\item \textbf{Scheduler:} Slurm/Kubernetes resource orchestration
+\item \textbf{Runtime/Framework:} CUDA + NCCL + PyTorch distributed stack
+\item \textbf{Model/Tracking:} Model shape drives infra; tracking validates impact
+\end{enumerate}
+\end{greenbox}
+
+\begin{bluebox}{One-Line Exam Mental Model}
+\textbf{If GPUs are idle, find the starvation layer:} input (\textbf{storage/data}), communication (\textbf{network/NCCL}), or runtime/configuration (\textbf{scheduler/framework}).
+\end{bluebox}
+
+\subsection{Hardware}
+
+\begin{bluebox}{Hardware Recall}
+\textbf{Path:} User $\rightarrow$ Login Node $\rightarrow$ Compute Node(s) $\leftrightarrow$ Shared Storage
+\end{bluebox}
+
+\textbf{HPC stack view (cluster-level):}
+\begin{itemize}
+\item User connects to a login/head node.
+\item Login/head nodes connect to compute nodes.
+\item Compute nodes share a parallel file system and are interconnected.
+\item Storage systems are typically separate from compute clusters.
+\end{itemize}
+
+\textbf{Inside a compute node:}
+\begin{itemize}
+\item Main components: CPU, GPU, and (in many modern systems) DPU/SmartNIC.
+\item CPU and GPU are connected through PCIe.
+\item GPUs within a node are connected through NVLink or NVSwitch.
+\end{itemize}
+
+\subsection{GPU Architecture}
+
+\begin{bluebox}{GPU Recall}
+\textbf{Think in levels:} GPU $\rightarrow$ SM $\rightarrow$ Warp (32 threads) $\rightarrow$ Execution units + memory hierarchy.
+\end{bluebox}
+
+\begin{itemize}
+\item Each GPU has multiple \textbf{SMs} (Streaming Multiprocessors).
+\item SMs share global memory (HBM/DRAM) through shared L2.
+\item Inside each SM: register files, warp scheduler, dispatch logic, L1/shared memory, and execution cores.
+\item A warp is typically 32 threads, and schedulers pick ready warps to improve occupancy and hide latency.
+\item Cores may target different precisions: Tensor Core ops, FP32, INT, etc.
+\end{itemize}
+
+\subsection{Network}
+
+\begin{redbox}{Bottleneck Clue}
+If network or storage is busy while GPUs are idle, training is often stalled by gradient synchronization or data movement.
+\end{redbox}
+
+\begin{bluebox}{Network Recall}
+\textbf{Data-plane speed tools:} InfiniBand + RDMA (+ GPUDirect where supported).  
+\textbf{Control/ops planes:} in-band for normal ops, out-of-band for hardware recovery/management.
+\end{bluebox}
+
+\begin{itemize}
+\item Ethernet is commonly used for general cluster traffic.
+\item InfiniBand is commonly used as the high-speed training interconnect.
+\item RDMA enables low-overhead data movement with minimal CPU involvement.
+\item GPUDirect RDMA/GPUDirect Storage can reduce unnecessary host copies in supported setups.
+\item DMA: direct memory transfer between device and host memory without active CPU copying loops.
+\item In-band network: regular OS/service traffic (SSH, scheduler, etc.).
+\item Out-of-band management network: hardware management path even if host OS is down.
+\end{itemize}
+
+\subsection{Storage}
+
+\begin{redbox}{Bottleneck Clue}
+If DataLoader is maxed out and GPUs are idle, storage/input pipeline is likely the bottleneck.
+\end{redbox}
+
+\begin{bluebox}{Storage Recall}
+\textbf{Order (fast to slow):} NVMe $\rightarrow$ Parallel FS $\rightarrow$ NFS $\rightarrow$ Object Store.
+\end{bluebox}
+
+\textbf{Fastest to slowest (practical training view):}
+\begin{enumerate}[leftmargin=1.4em]
+\item \textbf{Local NVMe}: fastest scratch storage for temporary datasets/intermediate files.
+\item \textbf{Parallel file systems} (Lustre, GPFS, BeeGFS): shared high-throughput storage across nodes.
+\item \textbf{NFS}: good for configs/scripts/small files, not ideal for heavy training I/O.
+\item \textbf{Object storage} (S3-style): good for logs/checkpoints/archive, typically higher latency for hot training reads.
+\end{enumerate}
+
+\subsection{Scheduler}
+
+\textbf{Common options:} Slurm or Kubernetes.
+
+\begin{bluebox}{Scheduler Recall}
+\textbf{Slurm:} batch/HPC-first job scheduling.  
+\textbf{Kubernetes:} container-first orchestration with GPU plugins.
+\end{bluebox}
+
+{\scriptsize
+\setlength{\tabcolsep}{2.6pt}
+\begin{tabularx}{0.98\textwidth}{|>{\raggedright\arraybackslash}p{1.5cm}|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}X|}
+\hline
+\textbf{Area} & \textbf{Slurm (high-level)} & \textbf{Kubernetes (high-level)} \\
+\hline
+Workload model & Batch/HPC scheduler for queued jobs and resource allocation. & Container orchestrator for pod-based workloads. \\
+\hline
+GPU resource model & GPU resources configured via \texttt{slurm.conf} and \texttt{gres.conf}. & GPUs requested through Kubernetes resource specs and exposed via device plugins (e.g., NVIDIA plugin). \\
+\hline
+\shortstack[l]{Scheduling\\fairness} & Priorities, QoS, fairshare, and preemption policies. & Scheduler places pods on nodes with available GPUs; policies are cluster-config driven. \\
+\hline
+\shortstack[l]{Monitoring\\ops} & \texttt{sacct}, \texttt{sreport}, dashboards, and node/GPU health logs. & Strong observability ecosystem (e.g., Prometheus/Grafana), plus autoscaling support. \\
+\hline
+\shortstack[l]{Performance\\capacity} & Tune GPU placement, NCCL config, CPU/GPU affinity, and network settings; plan capacity from workload trends. & Optimize placement and scaling behavior through scheduling constraints and autoscaling signals. \\
+\hline
+\end{tabularx}
+}
+
+\vspace{0.4cm}
+\textbf{Slurm example command:}
+\begin{center}
+\small
+\texttt{srun --partition=gpu --gres=gpu:1 --mem=16G}\\
+\texttt{--time=01:00:00 --pty bash}
+\normalsize
+\end{center}
+
+\begin{itemize}
+\item \texttt{srun}: starts an interactive run.
+\item \texttt{--gres=gpu:1}: requests one GPU.
+\item \texttt{--mem=16G --time=01:00:00}: sets memory and time limits.
+\item \texttt{--pty bash}: opens an interactive shell on the allocated node.
+\end{itemize}
+
+\subsection{Runtime}
+\begin{bluebox}{Runtime Recall}
+\textbf{Runtime stack:} CUDA kernels + NCCL collectives + drivers + container environment.
+\end{bluebox}
+
+\begin{itemize}
+\item CUDA runtime and kernels (compiled with \texttt{nvcc}).
+\item NCCL for distributed GPU communication.
+\item Containers for reproducibility.
+\item Drivers as the host-to-GPU interface.
+\end{itemize}
+
+Common issues: driver/runtime mismatch, inefficient kernel launches, communication backend bottlenecks, or container misconfiguration.
+
+\subsection{Framework}
+\textbf{PyTorch}
+
+\begin{bluebox}{Framework Recall}
+\textbf{DDP:} replicate model, sync gradients.  
+\textbf{FSDP:} shard model states to fit larger models.  
+\textbf{TP/PP:} split model compute across dimensions/stages.
+\end{bluebox}
+
+\textbf{DDP (DistributedDataParallel):}
+\begin{itemize}
+\item One model replica per GPU; gradients synchronized via AllReduce.
+\item Typical setup: wrap model with DDP, use \texttt{DistributedSampler}, call \texttt{loss.backward()} normally.
+\item Scaling can suffer with very small per-GPU batches because communication dominates.
+\end{itemize}
+
+\textbf{FSDP (Fully Sharded Data Parallel):}
+\begin{itemize}
+\item Shards parameters, gradients, and optimizer states across ranks.
+\item Useful for fitting larger models.
+\item Combine with mixed precision/checkpointing for memory efficiency.
+\end{itemize}
+
+\textbf{Tensor and pipeline parallelism:}
+\begin{itemize}
+\item Key when model size exceeds what plain data parallelism can handle.
+\item Directly affects communication pattern, memory pressure, and scaling behavior.
+\end{itemize}
+
+\subsection{Model}
+\begin{bluebox}{Model Recall}
+Model architecture determines memory pressure, communication pattern, and best parallelism strategy.
+\end{bluebox}
+
+Model size, structure, and compute pattern heavily influence infrastructure decisions: parallelism strategy, memory requirements, communication overhead, and inference latency.
+
+\subsection{Experiment Tracking}
+\begin{bluebox}{Tracking Recall}
+No tracking means no reliable diagnosis, no reproducible comparisons, and weak optimization decisions.
+\end{bluebox}
+
+Tools like Weights \& Biases and monitoring dashboards provide visibility into training performance and regressions. Without tracking, it is difficult to diagnose failures, evaluate optimizations, or scale workflows reliably.
+
+\section{PyTorch Distributed Components by Responsibility}
+
+{\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{0.98\textwidth}{|>{\raggedright\arraybackslash}p{2.2cm}|>{\raggedright\arraybackslash}p{2.3cm}|>{\raggedright\arraybackslash}p{2.5cm}|>{\raggedright\arraybackslash}X|}
+\hline
+\textbf{Responsibility} & \textbf{Component} & \textbf{What It Does} & \textbf{Implementation Steps} \\
+\hline
+Multi-process launching & Torchrun & Spawns one process per GPU and sets rank/world size & Launch with \texttt{torchrun --nproc\_per\_node=N}; read \texttt{LOCAL\_RANK}; set device; init process group. \\
+\hline
+Process group init & init\_process\_group & Creates communication group (NCCL/Gloo) & Call \texttt{torch.distributed.init\_process\_group(...)} early with \texttt{backend="nccl"} and set local CUDA device. \\
+\hline
+Distributed data parallel & DDP & Replicates model on each GPU and syncs gradients & Wrap model in DDP, use \texttt{DistributedSampler}, call \texttt{loss.backward()}. \\
+\hline
+Distributed sampling & DistributedSampler & Shards dataset across ranks & Pass sampler into DataLoader and call \texttt{sampler.set\_epoch(epoch)}. \\
+\hline
+Fully sharded data parallel & FSDP & Shards parameters, gradients, and optimizer state & Use torch.distributed.fsdp.FullyShardedDataParallel and configure sharding strategy, mixed precision, and wrapping policy. \\
+\hline
+Sharded checkpointing & dist.checkpoint & Saves/restores large distributed states efficiently & Use \texttt{torch.distributed.checkpoint} with FSDP-compatible state-dict APIs for save/load. \\
+\hline
+Gradient accumulation & no\_sync() (DDP) & Avoids sync on intermediate microsteps & Use \texttt{with model.no\_sync():} and sync on final accumulation step. \\
+\hline
+Mixed precision & autocast + GradScaler & Speed + memory improvements with lower precision & Wrap forward pass in \texttt{autocast()}, scale gradients with \texttt{GradScaler}. \\
+\hline
+Activation checkpointing & checkpoint API & Trades compute for lower memory usage & Use torch.utils.checkpoint on large blocks/layers and recompute on backward. \\
+\hline
+Tensor parallelism & device\_mesh + DTensor & Splits tensors/layers across GPUs & Define mesh, shard tensors, coordinate collectives. \\
+\hline
+Pipeline parallelism & Pipeline APIs/ecosystem tools & Splits model into stages via microbatches & Partition model stages and tune schedule to reduce bubbles. \\
+\hline
+Communication backend & NCCL & Handles GPU collectives & Use \texttt{backend="nccl"} and tune/debug via environment settings. \\
+\hline
+Compilation / optimization & torch.compile & Graph capture and kernel fusion & Compile model and validate with profiler-based speedups. \\
+\hline
+Data loading optimization & DataLoader tuning & Keeps GPUs fed & Tune \texttt{num\_workers}, \texttt{pin\_memory}, prefetch settings. \\
+\hline
+Profiling & torch.profiler & Captures CPU/GPU/comm timelines & Run scheduled traces and inspect bottlenecks. \\
+\hline
+Fault tolerance / elastic & TorchElastic (\texttt{torchrun}) & Supports restarts and membership changes & Use rendezvous backend + robust checkpoint resume flow. \\
+\hline
+\end{tabularx}
+}
+
+\subsection{Explain End-to-End Training Flow}
+Whiteboard explanation from data loading to optimizer step across 32 GPUs.
+
+\vspace{0.5cm}
+
+\begin{greenbox}{Likely Question}
+Walk me through how a distributed PyTorch job runs across multiple nodes.
+\end{greenbox}
+
+Typical flow:
+\begin{itemize}
+\item Start with a launcher (\texttt{torchrun}, often orchestrated by Slurm/Kubernetes).
+\item Spawn one process per GPU and assign each process a global rank, local rank, and world size.
+\item Each process sets its CUDA device and initializes the distributed process group (usually NCCL).
+\item Model is wrapped in DDP (or FSDP for sharded training).
+\item Dataset is partitioned with \texttt{DistributedSampler} so each rank gets a different data shard.
+\item During training, each rank runs forward/backward locally.
+\item Gradient synchronization (AllReduce or sharded collectives) keeps model updates consistent.
+\item Optimizer step proceeds in lockstep across ranks.
+\end{itemize}
+
+Overall performance depends on compute, network bandwidth, storage throughput, data loader efficiency, and scheduler configuration. A bottleneck in any layer can reduce scaling efficiency.
+
+% ======================================================
+\section{Distributed Training -- FULL DEPTH}
+% ======================================================
+
+\subsection{DDP Internals}
+
+A mini-batch is a small subset of training examples processed in one forward + backward pass.
+
+\begin{bluebox}{DDP Mental Model (Forward to Optimizer Step)}
+\begin{enumerate}[leftmargin=1.3em]
+\item Forward pass runs independently on each GPU replica.
+\item Backward pass computes parameter gradients.
+\item Autograd hooks trigger communication when gradient buckets are ready.
+\item NCCL AllReduce synchronizes gradients across ranks.
+\item Optimizer step updates weights in lockstep across GPUs.
+\end{enumerate}
+\end{bluebox}
+
+\begin{bluebox}{What Triggers Communication in DDP}
+\begin{itemize}
+\item DDP registers autograd hooks on parameters.
+\item Hooks are attached to gradient accumulation logic.
+\item As gradients are produced in backward, they are added to buckets.
+\item When a bucket is ready, DDP schedules NCCL collective communication.
+\end{itemize}
+\end{bluebox}
+
+\begin{redbox}{Why Overlap Matters}
+Communication starts during backward (not only after backward ends).  
+This overlap of backward compute + NCCL communication reduces GPU idle time and hides communication latency.
+\end{redbox}
+
+\textbf{Straggler effect (preserved + organized):}
+\begin{itemize}
+\item Faster GPUs wait for slower ones at synchronization points.
+\item Typical causes: data imbalance, CPU data-loading bottlenecks, storage I/O stalls, or network congestion.
+\item Quick data check: compare local batch sizes/runtimes across ranks (for example, print/trace per-rank batch stats).
+\end{itemize}
+
+\textbf{Debug heuristics (preserved + corrected):}
+\begin{itemize}
+\item \textbf{Data imbalance:} one rank receives more work; that GPU is idle \textbf{before} forward starts on next step.
+\item \textbf{CPU bottleneck:} DataLoader workers too few; CPU saturated (check with \texttt{htop}).
+\item \textbf{Disk/storage bottleneck:} slow reads from storage or network filesystem (check with \texttt{iostat} and storage metrics).
+\item \textbf{Network bottleneck:} GPUs wait during gradient sync, usually \textbf{after} backward kernels (check NCCL traces/\texttt{nsys}; use network tools such as \texttt{ifstat}/fabric metrics).
+\item \textbf{GPU utilization clues:} \texttt{nvidia-smi} shows low utilization or long idle gaps on specific ranks.
+\end{itemize}
+
+
+Topics to master:
+\begin{itemize}
+\item Autograd hooks
+\item Gradient bucketing: AllReduce starts when a gradient bucket is full, which enables overlap with backward compute.
+\item Bucket-size tradeoff: smaller buckets improve overlap but increase communication-call overhead; larger buckets reduce call count but can delay communication start.
+\item Tuning bucket size can improve scaling by balancing overlap vs communication overhead.
+\item Overlapping compute + communication
+\item NCCL backend: optimized for GPU collectives, uses NVLink/PCIe topology awareness, and builds efficient communication rings/trees.
+\item Rank initialization
+\end{itemize}
+
+\begin{redbox}{Follow-Up They Might Ask}
+Why does small batch size hurt DDP scaling?
+\begin{itemize}
+\item With very small per-GPU batch size, compute per step is short while communication cost stays similar, so communication dominates.
+\item Increasing global batch size often requires learning-rate retuning (and sometimes warmup adjustments) for stable convergence.
+\end{itemize}
+\end{redbox}
+
+
+At the end, overlap means backward compute continues while previous gradients are being reduced.
+
+\textbf{How to detect poor overlap:}
+\begin{itemize}
+\item Large communication-only gaps after backward.
+\item High GPU idle time near the step tail.
+\item In profiler timelines (e.g., Nsight Systems), good runs show interleaving of backward kernels and NCCL ops; poor runs show big NCCL blocks after backward completion.
+\end{itemize}
+
+
+\begin{bluebox}{DDP Init and Failure Checklist}
+Each DDP process has a unique \texttt{RANK}; \texttt{WORLD\_SIZE} is total processes.
+
+\textbf{Common env vars:}
+\begin{itemize}
+\item \texttt{MASTER\_ADDR}
+\item \texttt{MASTER\_PORT}
+\item \texttt{RANK}
+\item \texttt{WORLD\_SIZE}
+\end{itemize}
+
+\textbf{If setup is wrong, typical symptoms:}
+\begin{itemize}
+\item rank mismatch or world-size mismatch \(\rightarrow\) hang/deadlock at init/collectives
+\item wrong master address/port conflict/firewall block \(\rightarrow\) rendezvous failure
+\item Slurm misconfiguration \(\rightarrow\) inconsistent rank mapping
+\end{itemize}
+\end{bluebox}
+
+\begin{bluebox}{DDP Step-by-Step (Interview Version)}
+Each GPU runs a full model replica on a different data shard. During backward, autograd hooks bucket gradients and trigger NCCL AllReduce. After synchronization, each rank applies the same optimizer step.  
+\textbf{Key point:} gradient sync is overlapped during backward, not only after backward ends.
+\end{bluebox}
+
+\begin{bluebox}{PyTorch FSDP: What Changes vs Vanilla Training}
+\begin{itemize}
+\item launch one process per GPU (\texttt{torchrun} or Slurm launcher)
+\item initialize distributed process group (\texttt{init\_process\_group})
+\item set local CUDA device per rank
+\item wrap model/submodules with FSDP
+\item train with normal forward/backward/step loop
+\item use FSDP-aware sharded checkpointing
+\end{itemize}
+
+\textbf{Key APIs to know:}
+\begin{itemize}
+\item \texttt{torchrun --nproc\_per\_node=...}
+\item \texttt{torch.distributed.init\_process\_group}
+\item \texttt{torch.distributed.fsdp.FullyShardedDataParallel}
+\item \texttt{torch.distributed.fsdp.wrap} (auto-wrap policy)
+\item \texttt{ShardingStrategy.FULL\_SHARD} (ZeRO-3-like behavior)
+\item \texttt{FSDP.state\_dict\_type(..., SHARDED\_STATE\_DICT)}
+\end{itemize}
+\end{bluebox}
+
+\begin{lstlisting}[language=Python, caption={FSDP pseudocode (PyTorch)}]
+import os
+import torch
+import torch.distributed as dist
+from torch.optim import AdamW
+from torch.utils.data import DataLoader, DistributedSampler
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp import ShardingStrategy, StateDictType
+from torch.distributed.fsdp.api import MixedPrecision
+from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
+
+def setup_dist():
+    dist.init_process_group(backend="nccl")
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.cuda.set_device(local_rank)
+    return local_rank, dist.get_rank(), dist.get_world_size()
+
+def wrap_with_fsdp(model):
+    auto_wrap = lambda m, recurse, nonwrapped_numel: size_based_auto_wrap_policy(
+        m, recurse=recurse, nonwrapped_numel=nonwrapped_numel, min_num_params=1e6
+    )
+    mp = MixedPrecision(
+        param_dtype=torch.bfloat16,
+        reduce_dtype=torch.bfloat16,
+        buffer_dtype=torch.bfloat16,
+    )
+    return FSDP(
+        model,
+        auto_wrap_policy=auto_wrap,
+        sharding_strategy=ShardingStrategy.FULL_SHARD,
+        mixed_precision=mp,
+        device_id=torch.cuda.current_device(),
+    )
+\end{lstlisting}
+
+\begin{redbox}{FSDP FULL\_SHARD Recall}
+FULL\_SHARD is ZeRO-3-like: parameters, gradients, and optimizer states are sharded.  
+Parameters are gathered just-in-time per wrapped unit; gradients are reduce-scattered in backward.
+\end{redbox}
+
+\begin{bluebox}{DeepSpeed ZeRO: What Changes vs Vanilla Training}
+\begin{itemize}
+\item define DeepSpeed config with \texttt{zero\_optimization.stage}
+\item call \texttt{deepspeed.initialize(...)}
+\item train with \texttt{engine.backward(loss)} and \texttt{engine.step()}
+\item save ZeRO-aware checkpoints via \texttt{engine.save\_checkpoint(...)}
+\end{itemize}
+\end{bluebox}
+
+\begin{lstlisting}[language=Python, caption={DeepSpeed ZeRO pseudocode}]
+import deepspeed
+import torch
+from torch.utils.data import DataLoader, DistributedSampler
+
+def get_ds_config(stage: int):
+    return {
+        "train_batch_size": GLOBAL_BS,
+        "train_micro_batch_size_per_gpu": PER_GPU_BS,
+        "gradient_accumulation_steps": GRAD_ACCUM,
+        "bf16": {"enabled": True},
+        "zero_optimization": {"stage": stage},
+        "optimizer": {
+            "type": "AdamW",
+            "params": {"lr": LR, "betas": [0.9, 0.999], "eps": 1e-8, "weight_decay": WD}
+        },
+    }
+\end{lstlisting}
+
+\begin{bluebox}{Quick Comms Notes}
+\textbf{Ring AllReduce:} gradients are split and passed around a ring; each rank talks to neighbors only, which is bandwidth-efficient.  
+\textbf{Gradient accumulation:} accumulate multiple micro-batches before optimizer step to reduce sync frequency.
+\end{bluebox}
+
+\begin{redbox}{Scaling/Debug Interview Notes}
+\textbf{Why efficiency drops at high GPU count:} communication/synchronization dominates compute, latency and stragglers hurt more.  
+\textbf{Common causes:} data-loader bottlenecks, too-small per-GPU batch, communication blocking, I/O saturation, CPU under-provisioning.
+
+\textbf{Job hang checklist:}
+\begin{itemize}
+\item rank/world-size mismatch
+\item one crashed rank
+\item NCCL deadlock or collective-order mismatch
+\item firewall/port/master-address issues
+\item Slurm rank mapping errors
+\end{itemize}
+
+\textbf{Single-node vs multi-node:}
+\begin{itemize}
+\item single node (NVLink): higher bandwidth, lower latency, fewer failure points
+\item multi-node (InfiniBand/Ethernet): higher latency, more sync overhead, topology matters
+\end{itemize}
+\end{redbox}
+
+\vspace{1cm}
+
+\subsection{FSDP / ZeRO -- Memory Deep Dive}
+
+\begin{bluebox}{Baseline Memory in Vanilla DDP}
+Each GPU stores full parameters + full gradients + full optimizer states.  
+Per-GPU memory scales poorly for very large models because model states are fully replicated.
+\end{bluebox}
+
+ZeRO stands for \textbf{Zero Redundancy Optimizer}. It removes redundant model-state copies by sharding them across GPUs. FSDP is PyTorch's ZeRO-style implementation.
+
+Understand:
+\begin{itemize}
+\item \textbf{Parameter sharding:} each GPU stores only \(1/N\) parameters at rest; parameters are gathered just in time per layer.
+\item \textbf{Gradient partitioning:} gradients are partitioned (typically via ReduceScatter), so each rank keeps only its shard.
+\item \textbf{Optimizer state partitioning:} major memory win; for Adam, optimizer state is often the largest memory component.
+\item \textbf{Activation checkpointing:} save fewer activations and recompute in backward (less memory, more compute).
+\item \textbf{Communication amplification:} ZeRO-3/FSDP reduces memory but increases communication events (gather/scatter).
+\end{itemize}
+
+\begin{greenbox}{Prompt}
+Explain tradeoffs between ZeRO-2 and ZeRO-3.
+
+\textbf{ZeRO-2}
+\begin{itemize}
+\item shards optimizer states and gradients
+\item parameters remain replicated
+\item lower communication overhead than ZeRO-3
+\item easier to scale when network bandwidth is limited
+\end{itemize}
+
+\textbf{ZeRO-3}
+\begin{itemize}
+\item shards parameters + gradients + optimizer states
+\item maximum memory savings (roughly model-state memory \(\sim 1/N\) per GPU)
+\item higher communication and more synchronization points
+\item enables larger model sizes at the cost of communication complexity
+\end{itemize}
+
+\textbf{Memory sketch:}
+\begin{itemize}
+\item DDP: \(\text{params} + \text{grads} + \text{optimizer}\)
+\item ZeRO-2: \(\text{params} + \frac{\text{grads}}{N} + \frac{\text{optimizer}}{N}\)
+\item ZeRO-3: \(\frac{\text{params}}{N} + \frac{\text{grads}}{N} + \frac{\text{optimizer}}{N}\)
+\end{itemize}
+
+\textbf{When are parameters gathered in FSDP?}
+\begin{itemize}
+\item just before a wrapped layer runs forward
+\item can be freed after layer compute
+\item gathered layer-by-layer (not entire model at once)
+\end{itemize}
+
+\textbf{ReduceScatter vs AllReduce}
+\begin{itemize}
+\item AllReduce: all ranks end with full reduced gradients
+\item ReduceScatter: reduce + shard in one step; each rank keeps only its shard
+\end{itemize}
+\end{greenbox}
+
+\begin{bluebox}{Memory-Spike Debug Guide (FSDP/ZeRO)}
+\textbf{Where to inspect:} forward gather, backward reduce-scatter, checkpointing, accumulation windows.  
+Use \texttt{torch.cuda.memory\_summary()}, Nsight Systems, and PyTorch profiler.
+
+\textbf{Common spike causes:}
+\begin{itemize}
+\item coarse wrapping granularity (gathers too much at once)
+\item forward prefetch overlaps too many large gathers
+\item consolidated checkpoints gathering full model on rank 0
+\item mixed-precision misconfiguration creating unexpected FP32 copies
+\item large gradient-accumulation factor increasing peak live tensors
+\end{itemize}
+
+\textbf{Checkpointing note:}
+\begin{itemize}
+\item sharded checkpoints are most scalable for ZeRO/FSDP
+\item full consolidated checkpoints are easier to consume but can cause rank-0 memory spikes
+\end{itemize}
+\end{bluebox}
+
+\vspace{2cm}
+
+% ======================================================
+\section{Parallelism Strategies for LLMs}
+% ======================================================
+\begin{bluebox}{Memory Reminder}
+What usually blows up memory:
+\begin{itemize}
+\item steady-state memory: parameters, gradients, optimizer states
+\item peak memory: activations saved for backward (often grows with batch size and sequence length)
+\end{itemize}
+\end{bluebox}
+
+\subsection{Data Parallelism}
+\begin{itemize}
+\item Input batch is split across devices/processes.
+\item Each device runs forward + backward on its mini-batch independently.
+\item Pro: simple scaling, no pipeline bubbles, independent execution.
+\item Con: each device stores a full copy of model states (parameters + gradients + optimizer), so memory footprint is not reduced.
+\item Gradient synchronization happens through collectives (commonly AllReduce or ReduceScatter + AllGather, depending on implementation).
+\end{itemize}
+
+\subsection{Tensor Parallelism}
+\begin{bluebox}{Tensor Parallelism (Intra-Layer)}
+Split tensors within a layer (for example, sharded matmul weights). This reduces per-device compute and per-device parameter footprint for that layer, but increases inter-device communication.
+\end{bluebox}
+
+\textbf{Row-wise vs column-wise split:}
+\begin{itemize}
+\item \textbf{Column-parallel linear (split output features):} each GPU computes a slice of output; next layers may need AllGather (or compatible sharding). Backward usually includes gradient communication.
+\item \textbf{Row-parallel linear (split input features):} each GPU consumes input slices and partial outputs are summed (commonly via AllReduce).
+\item Frameworks place AllGather/AllReduce where cost is lowest.
+\end{itemize}
+
+\begin{itemize}
+\item \textbf{Splitting weight matrices}
+\item Heavy Transformer ops affected: attention projections (Q/K/V/output) and FFN linear layers.
+\item Example (column split): for \(W \in \mathbb{R}^{d \times 4d}\), shard columns across GPUs (e.g., GPU0: \(W[:,0:2d]\), GPU1: \(W[:,2d:4d]\)); each GPU computes local \(XW_i\), then combine as needed.
+\item \textbf{AllGather requirements}
+\item Partial outputs often must be gathered before the next layer.
+\item Gradients are reduced in backward (common patterns: AllGather, ReduceScatter, AllReduce).
+\item This communication occurs repeatedly across layers.
+\item \textbf{Communication cost}
+\item Tensor parallelism introduces per-layer communication across TP groups.
+\item Communication cost scales with both layer count and TP size.
+\end{itemize}
+
+\subsection{Pipeline Parallelism}
+\begin{bluebox}{Pipeline Parallelism}
+Layer-wise model split across devices. Memory is reduced per device because each stage stores only its own layers, but scheduling is required to minimize idle time (pipeline bubbles).
+\end{bluebox}
+
+\begin{itemize}
+\item Microbatching
+\item Without microbatching, devices idle heavily across stages.
+\item With microbatching, the pipeline fills:
+\begin{itemize}
+\item Time 1: GPU0 \(\rightarrow\) MB1
+\item Time 2: GPU0 \(\rightarrow\) MB2, GPU1 \(\rightarrow\) MB1
+\item Time 3: GPU0 \(\rightarrow\) MB3, GPU1 \(\rightarrow\) MB2, GPU2 \(\rightarrow\) MB1
+\end{itemize}
+\item Bubble overhead
+\item Idle time at start/end is the pipeline bubble.
+\item Bubble cost reminder: \((\#\text{stages} - 1)/\#\text{microbatches}\).
+\item More microbatches generally means a smaller bubble.
+\item Stage balancing
+\item If one stage is heavier, the whole pipeline stalls.
+\item Stages should be balanced for both compute and memory.
+\end{itemize}
+
+\subsection{Hybrid Parallelism}
+Explain how large models combine DP (across replicas) + TP (within nodes) + PP (across layers).
+
+\vspace{2cm}
+
+\begin{greenbox}{Design Prompt}
+Design distributed training for a 100B parameter model on 64 GPUs.
+\textbf{Placeholder retained:} significance of this exact number to be filled later.
+
+Why combine DP + TP + PP:
+\begin{itemize}
+\item TP helps when a single layer is too large for one GPU.
+\item PP helps when the full model is too large for one GPU.
+\item DP scales throughput across replica groups.
+\end{itemize}
+
+Communication differences:
+\begin{itemize}
+\item TP: heavy per-layer communication.
+\item PP: activation passing between stages.
+\item DP: gradient synchronization.
+\item Each type introduces a different bottleneck.
+\end{itemize}
+\end{greenbox}
+
+\textbf{Questions to expect:}
+\begin{itemize}
+\item How would you train a 100B model across 64 GPUs?
+\item What limits tensor-parallel scaling?
+\item What limits pipeline scaling?
+\item When do you prefer TP over PP?
+\item When do you prefer PP over TP?
+\end{itemize}
+
+\textbf{Answer cues from your notes:}
+\begin{itemize}
+\item combine TP (split large layers), PP (partition layers across stages), and DP (scale throughput across groups)
+\item TP limits: per-layer communication, interconnect bandwidth, latency
+\item PP limits: bubble overhead, stage imbalance, activation memory
+\item prefer TP when layers are extremely large and fast interconnect (e.g., NVLink) is available
+\item prefer PP when the full model does not fit a single GPU and cross-node bandwidth constraints dominate
+\end{itemize}
+
+% ======================================================
+\section{NCCL + Networking}
+% ======================================================
+
+\begin{bluebox}{NCCL Recall}
+NCCL provides distributed collective communication primitives for multi-GPU training.
+\end{bluebox}
+
+\textbf{Core collectives from your notes:}
+\begin{itemize}
+\item \textbf{Broadcast:} one rank sends data to all ranks (often weights/config).
+\item \textbf{AllReduce:} reduce across all ranks and store result on every rank (gradient sync).
+\item \textbf{Reduce:} reduce across ranks and store result on one rank (aggregation).
+\item \textbf{AllGather:} gather shards so each rank has full data (common in unshard steps, e.g., FSDP).
+\item \textbf{ReduceScatter:} reduce + scatter so each rank keeps only a shard (common for sharded gradients).
+\end{itemize}
+
+\textbf{Gradient-sync reminder:}
+In data parallel training, each GPU computes partial gradients on its mini-batch, then synchronization collectives are used before weight update.
+
+\subsection{AllReduce Algorithms}
+AllReduce combines tensors across GPUs and distributes reduced results to all ranks. It is used to synchronize gradients and keep model state consistent.
+
+\begin{itemize}
+\item Ring
+\item GPUs form a logical ring and exchange chunks with neighbors.
+\item Communication pattern is \(2 \times (N-1)\) steps.
+\item Tensor is split into chunks; reduce-scatter style pass plus all-gather pass.
+\item Pro: bandwidth-efficient, scales well for large messages.
+\item Con: latency accumulates with larger \(N\); weaker for small tensors.
+\item Interview cue: if one GPU is slower, the ring stalls (straggler effect).
+\item Tree
+\item Pair GPUs in a reduction tree, combine upward, then broadcast down.
+\item Complexity intuition: \(O(\log N)\).
+\item Pro: lower latency, good for small messages.
+\item Con: less bandwidth-efficient; root/intermediate nodes can become hot spots.
+\item Prefer tree when latency dominates.
+\item Hierarchical
+\item Common in multi-node setups.
+\item Two-stage reduction:
+\begin{itemize}
+\item intra-node reduction (e.g., NVLink domain)
+\item inter-node reduction (e.g., InfiniBand/Ethernet fabric)
+\end{itemize}
+\item Reduces cross-node traffic by exploiting faster intra-node links first.
+\end{itemize}
+
+\subsection{InfiniBand + RDMA}
+\begin{itemize}
+\item What is RDMA?
+\item Direct memory access across machines with minimal CPU/kernel involvement in the data path.
+\item Path intuition from your notes:
+\begin{itemize}
+\item traditional: GPU \(\rightarrow\) CPU/kernel \(\rightarrow\) NIC \(\rightarrow\) network \(\rightarrow\) NIC/kernel \(\rightarrow\) CPU \(\rightarrow\) GPU
+\item RDMA-style path reduces host-copy overhead
+\end{itemize}
+\item How does EFA work?
+\item EFA = Elastic Fabric Adapter.
+\item Enables low-latency networking in cloud HPC/distributed workloads.
+\item Supports high-speed NCCL collective communication patterns in cloud settings.
+\item Why bypass CPU?
+\item CPU context switching, kernel interrupts, and extra copies increase latency and overhead.
+\item Latency vs bandwidth
+\item Large gradient tensors are often bandwidth-critical.
+\item Small control messages are latency-critical.
+\item Scaling behavior depends on both.
+\end{itemize}
+
+\begin{redbox}{Troubleshooting Scenario}
+Scaling from 8 $\rightarrow$ 32 GPUs drops efficiency from 85\% to 60\%. Diagnose.
+
+\textbf{Diagnosis flow (from your notes):}
+\begin{enumerate}[leftmargin=1.3em]
+\item Check GPU utilization first (\texttt{nvidia-smi}).
+\begin{itemize}
+\item 90--100\%: likely compute-bound
+\item 40--60\%: often communication or I/O bound
+\item very low utilization: likely stalls
+\end{itemize}
+\item Profile timelines (\texttt{nsys}) and verify if NCCL dominates.
+\item Use PyTorch profiler to measure NCCL time vs compute-kernel time.
+\item Compute scaling efficiency and flag low values (your note: \(<70\%\) suspicious).
+\end{enumerate}
+
+\textbf{Network and communication checks:}
+\begin{itemize}
+\item Enable NCCL debug logs:
+\begin{itemize}
+\item \texttt{export NCCL\_DEBUG=INFO}
+\item \texttt{export NCCL\_DEBUG\_SUBSYS=ALL}
+\end{itemize}
+\item Inspect InfiniBand/network tools: \texttt{ibstat}, \texttt{ibv\_devinfo}, \texttt{sar -n DEV 1}, \texttt{iftop}, \texttt{nload}
+\item Check topology and PCIe/NVLink paths: \texttt{nvidia-smi topo -m}
+\item Watch for stragglers: one rank consistently slower/lower utilization
+\item Check CPU loader pressure (\texttt{htop}), NUMA placement, and thermal throttling (\texttt{nvidia-smi -q -d TEMPERATURE})
+\end{itemize}
+
+\textbf{Batch-size effect from your notes:}
+\[
+\text{per-GPU batch} = \frac{\text{global batch}}{\text{\#GPUs}}
+\]
+If GPU count grows while global batch is fixed, per-GPU batch shrinks and communication can dominate.  
+Typical fix in your notes: increase global batch and/or use gradient accumulation.
+
+\textbf{Quick reference flow:}
+\begin{itemize}
+\item check GPU utilization
+\item profile NCCL time
+\item enable NCCL logs
+\item check network saturation
+\item check per-GPU batch size
+\item look for stragglers
+\item confirm hierarchical reduction behavior
+\end{itemize}
+
+\textbf{Strong answer cues for ``improve 32-GPU scaling'':}
+\begin{itemize}
+\item increase batch size
+\item tune gradient bucket size
+\item enable/tune hierarchical AllReduce path
+\item reduce synchronization frequency
+\item improve network
+\end{itemize}
+\end{redbox}
+
+\vspace{2cm}
+
+% ======================================================
+% ======================================================
+\section{GPU Architecture + Performance}
+% ======================================================
+
+\begin{bluebox}{Performance Reminder}
+\[
+\text{TFLOPs} \propto \text{cores} \times \text{clock} \times \text{FLOPs/cycle}
+\]
+Performance is strongly affected by memory bandwidth, available TFLOPs, and Tensor Core utilization.
+\end{bluebox}
+
+\subsection{SM Architecture}
+\begin{greenbox}{SM Quick Recall}
+\begin{itemize}
+\item \textbf{Warp:} 32 threads per warp (SIMT style).
+\item \textbf{Warp scheduler:} picks ready warps to hide latency.
+\item \textbf{Dispatcher:} issues instructions to pipelines/cores.
+\item If one warp stalls on memory, the scheduler switches to another warp.
+\item If threads in one warp diverge on control flow, paths serialize and throughput drops.
+\item \textbf{Occupancy:} active warps / max possible warps per SM.
+\item Achieved occupancy can differ from theoretical occupancy due to scheduling/resource limits.
+\item \textbf{Shared memory:} enables intra-block reuse and reduced global-memory traffic.
+\item \textbf{Registers:} fastest storage tier for thread-local values.
+\end{itemize}
+\end{greenbox}
+
+\keysent{Library/tool notes from your content:}\par
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{2.3cm}|X|}
+\hline
+\textbf{Tool} & \textbf{Purpose} \\
+\hline
+cuBLAS & GPU-accelerated linear algebra \\
+\hline
+cuFFT & FFT library \\
+\hline
+cuDNN & Deep-learning kernels \\
+\hline
+cuda-gdb & Kernel debugging (breakpoints/step) \\
+\hline
+cuda-memcheck & Memory correctness checks \\
+\hline
+\end{tabularx}
+}
+
+\keysent{Block-size tradeoff from your notes:}\par
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{2.9cm}|X|}
+\hline
+\textbf{Choice} & \textbf{Tradeoff} \\
+\hline
+\textbf{Larger blocks} & Better shared-memory reuse and fewer redundant global loads; can lower occupancy. \\
+\hline
+\textbf{Smaller blocks} & Easier latency hiding and scheduling flexibility; less intra-block reuse and potentially lower arithmetic intensity. \\
+\hline
+\end{tabularx}
+}
+
+\subsection{Bottleneck Types}
+{\footnotesize
+\setlength{\tabcolsep}{2.8pt}
+\begin{tabularx}{0.98\textwidth}{|>{\raggedright\arraybackslash}p{2.2cm}|X|X|}
+\hline
+\textbf{Type} & \textbf{Symptoms} & \textbf{Typical fixes} \\
+\hline
+Compute-bound & High SM activity, memory bandwidth not maxed, kernels dominate runtime. & Improve Tensor Core use, fuse kernels, improve occupancy, reduce divergence. \\
+\hline
+Memory-bound & Bandwidth near peak, moderate SM activity, many stalls. & Tiling, shared-memory reuse, coalescing, fewer global reads/writes. \\
+\hline
+IO-bound & GPU idle, DataLoader maxed, disk/network busy. & Dataset caching, offline preprocessing, parallel data loading, faster storage (SSD/NVMe), reduced contention, distributed sharding with node-local caching. \\
+\hline
+Communication-bound & Placeholder retained. & Placeholder retained. \\
+\hline
+\end{tabularx}
+}
+
+\keysent{Important CUDA terms:}
+\begin{itemize}
+\item \texttt{gridDim.x}, \texttt{gridDim.y}: grid dimensions (number of blocks)
+\item \texttt{blockDim.x}, \texttt{blockDim.y}: threads per block dimensions
+\item \texttt{threadIdx.x}, \texttt{threadIdx.y}: thread coordinates inside block
+\item \texttt{blockIdx.x}, \texttt{blockIdx.y}: block coordinates inside grid
+\end{itemize}
+
+\keysent{2D indexing reminder (matmul/conv-style):}
+\[
+i = \texttt{blockIdx.y} \cdot \texttt{blockDim.y} + \texttt{threadIdx.y}, \quad
+j = \texttt{blockIdx.x} \cdot \texttt{blockDim.x} + \texttt{threadIdx.x}
+\]
+
+\begin{greenbox}{Prompt}
+GPU utilization is 40\%. How do you debug?
+\begin{enumerate}[leftmargin=1.3em]
+\item Confirm low utilization with \texttt{watch -n 1 nvidia-smi}.
+\item Check detailed counters: \texttt{nvidia-smi dmon -s u}.
+\item Check CPU loader bottlenecks: \texttt{htop}.
+\item Check process/thread CPU placement: \texttt{ps -o pid,psr,pcpu,comm -p <PID>}.
+\item Check data-loader I/O: \texttt{iostat -xm 1}.
+\item Check filesystem/network I/O: \texttt{df -h}, \texttt{lfs df -h}, \texttt{sar -n DEV 1}.
+\item Check communication dominance:
+\begin{itemize}
+\item \texttt{export NCCL\_DEBUG=INFO}
+\item \texttt{export NCCL\_DEBUG\_SUBSYS=ALL}
+\end{itemize}
+\item Profile with Nsight Systems:
+\begin{itemize}
+\item \texttt{nsys profile -o profile\_report python train.py}
+\item look for large NCCL blocks and GPU idle gaps
+\end{itemize}
+\item Check per-GPU batch size: \(\text{per-GPU batch}=\text{global batch}/N\).
+\item Check stragglers and thermals: \texttt{nvidia-smi}, \texttt{nvidia-smi -q -d TEMPERATURE}.
+\item Check NUMA/topology and PCIe paths: \texttt{nvidia-smi topo -m}.
+\item If kernels are too short/small, increase effective work per step.
+\end{enumerate}
+\end{greenbox}
+
+\vspace{2cm}
+
+% ======================================================
+\section{Data Pipeline Scaling}
+% ======================================================
+
+\begin{bluebox}{Topics}
+\begin{itemize}
+\item Sharding datasets
+\item DataLoader \texttt{num\_workers}
+\item Prefetching
+\item Caching
+\item Metadata server overload
+\end{itemize}
+\end{bluebox}
+
+\keysent{Pipeline details from your notes:}
+\begin{itemize}
+\item \textbf{DistributedSampler:} avoids duplicate shard reads across GPUs, improves balance across ranks.
+\item \textbf{DataLoader workers:} each worker is a subprocess loading data in parallel.
+\item \textbf{Prefetching:} loads the next batch while the GPU processes the current batch.
+\item Important flags from your notes: \texttt{prefetch\_factor}, \texttt{persistent\_workers}, \texttt{pin\_memory}.
+\item \texttt{pin\_memory} allocates page-locked host memory to speed CPU-to-GPU transfers.
+\item \textbf{Caching:} cache dataset in RAM, cache preprocessed tensors, or use local NVMe instead of network FS.
+\end{itemize}
+
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{3cm}|X|X|}
+\hline
+\textbf{Issue} & \textbf{Symptoms} & \textbf{Fixes from your notes} \\
+\hline
+DataLoader starvation & Low GPU utilization; CPU and I/O high; profiling shows gaps between batches. & Increase workers, enable \texttt{pin\_memory}, cache locally, increase batch size, use faster storage, use async preprocessing. \\
+\hline
+Metadata server overload & Random stalls, high IOPS, inconsistent speed, high \texttt{\%util}/wait in \texttt{iostat -xm 1}. & Use tar/record files, prepack dataset, cache locally, increase striping. \\
+\hline
+Distributed amplification & Multiple processes load data simultaneously, amplifying I/O pressure and metadata contention. & Shard data, reduce small files, cache node-local. \\
+\hline
+Slow rank stall & Collectives (for example AllReduce) require all ranks; slowest rank sets step time. & Fix stragglers and rebalance pipeline. \\
+\hline
+\end{tabularx}
+}
+
+\begin{greenbox}{Prompt}
+Why might training stall randomly in distributed jobs?
+\begin{enumerate}[leftmargin=1.3em]
+\item DataLoader starvation.
+\item Metadata server overload.
+\item Network file system congestion.
+\item Straggler node.
+\item Random garbage collection or memory spikes.
+\item Background system activity (CPU, disk, network).
+\end{enumerate}
+\end{greenbox}
+
+\vspace{2cm}
+
+
+\subsection{KV Cache for Autoregressive Inference}
+
+\begin{bluebox}{KV Cache Mental Model}
+In decoder-only inference, the model generates one token at a time.  
+For each new token, you only need a \textbf{new query} and the historical \textbf{cached keys/values} from prior tokens.
+\end{bluebox}
+
+From your notes, the key idea is to avoid recomputing old attention state repeatedly:
+\begin{itemize}
+\item Transformer layers produce \(Q, K, V\) per token.
+\item For the newest token, attention uses that token's \(Q_t\) against all previous \(K_{1:t}\) and \(V_{1:t}\).
+\item Recomputing \(K,V\) for old tokens every step is redundant.
+\end{itemize}
+
+\textbf{KV-cache decode loop (cleaned from your notes):}
+\begin{enumerate}[leftmargin=1.3em]
+\item Compute \(Q_t, K_t, V_t\) for the newest token only.
+\item Append \(K_t, V_t\) to per-layer cache.
+\item Read cached \(K_{1:t}, V_{1:t}\).
+\item Compute attention with \(Q_t\) and cached history.
+\end{enumerate}
+
+\begin{redbox}{Important Clarification}
+KV caching removes repeated \textbf{projection} work for past tokens, but attention over context is still sequence-length dependent.  
+So decode compute does not become constant-time; it becomes much more efficient than full recomputation.
+\end{redbox}
+
+\textbf{TTFT vs steady decode (from your notes):}
+\begin{itemize}
+\item \textbf{Prefill phase:} process full prompt, build cache, highest initial compute cost.
+\item \textbf{Decode phase:} one-token steps using warm cache.
+\item Longer prompts increase prefill cost, so \textbf{time-to-first-token (TTFT)} rises.
+\end{itemize}
+
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{2.5cm}|X|X|}
+\hline
+\textbf{Phase} & \textbf{Main work} & \textbf{Typical bottleneck} \\
+\hline
+Prefill & Full prompt forward pass + KV cache build & Compute + memory bandwidth \\
+\hline
+Decode & Per-token forward with cached history & Memory bandwidth + cache capacity \\
+\hline
+\end{tabularx}
+}
+
+\textbf{Memory tradeoff (your point, organized):}
+\begin{itemize}
+\item KV cache trades compute for memory.
+\item Cache grows with layer count, context length, and concurrent requests.
+\item For long contexts and many concurrent users, KV memory can exceed model weights.
+\item This motivates \textbf{MQA/GQA} to reduce KV-head memory pressure.
+\end{itemize}
+
+
+
+% ======================================================
+\section{Fault Tolerance + Checkpointing}
+% ======================================================
+
+\keysent{How it is done in PyTorch (from your notes): use DistributedSampler.}
+
+\begin{lstlisting}[language=Python, caption={DistributedSampler sketch from notes}]
+sampler = torch.utils.data.DistributedSampler(
+    dataset,
+    num_replicas=world_size,
+    rank=rank,
+    shuffle=True,
+)
+loader = DataLoader(dataset, sampler=sampler)
+\end{lstlisting}
+
+\keysent{Why this matters (from your notes):}
+\begin{itemize}
+\item avoids scenarios where GPUs read the same data shard
+\item avoids load imbalance across ranks
+\item reduces straggler effects from uneven sample counts
+\end{itemize}
+
+\keysent{If dataset size is not divisible by world size:}
+\begin{itemize}
+\item some ranks may process fewer samples, causing sync delays
+\item using \texttt{drop\_last=True} can help keep step balance
+\end{itemize}
+
+\keysent{DataLoader \texttt{num\_workers} notes:}
+\begin{itemize}
+\item each worker is a subprocess loading data in parallel
+\item too low: GPU waits for data (low utilization)
+\item too high: CPU thrashing, memory pressure, context-switch overhead
+\item starting point from your notes: around 4--8 workers per GPU (then tune by CPU/core budget)
+\item monitor with \texttt{htop}; increase until GPU utilization stops improving or CPU saturates
+\end{itemize}
+
+\begin{bluebox}{Prefetching + Caching Notes}
+\begin{itemize}
+\item Prefetching loads the next batch while the GPU processes the current batch.
+\item Without prefetching, GPU idle gaps appear between batches.
+\item Shared filesystem failures from your notes: metadata overload, thousands of small file opens, random stalls.
+\item Small files hurt because each access requires metadata lookup and adds latency.
+\item Metadata overload (Lustre/NFS): random stalls, high IOPS, inconsistent speed.
+\item Detection: \texttt{iostat -xm 1} (high utilization and high wait time).
+\item Fixes from your notes: tar/record files, prepack dataset, cache locally, increase striping.
+\end{itemize}
+\end{bluebox}
+
+\keysent{Possible questions from your notes:}\par
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{3.4cm}|X|}
+\hline
+\textbf{Question} & \textbf{Answer from your notes (cleaned)} \\
+\hline
+How do you detect DataLoader bottleneck? & GPU util low, CPU usage high, I/O high, profiling shows gaps between batches. \\
+\hline
+How would you improve data pipeline throughput? & Increase workers, enable pin memory, cache locally, increase batch size, use faster storage, use async preprocessing. \\
+\hline
+Why does distributed training amplify data bottlenecks? & Multiple processes load data simultaneously, increasing I/O pressure and metadata contention. \\
+\hline
+Why does one slow rank stall everything? & Collective operations like AllReduce require all ranks; the slowest process determines global step time. \\
+\hline
+\end{tabularx}
+}
+
+\subsection{Checkpoint and Resume State}
+\begin{itemize}
+\item \textbf{Sharded checkpoints}
+\item \textbf{Partial node failure}
+\item \textbf{Resume logic}
+\item \textbf{Optimizer state restoration}
+\item \textbf{RNG state}
+\end{itemize}
+
+\keysent{Checkpointing details from your notes:}
+\begin{itemize}
+\item Checkpointing can cause memory spikes if consolidation gathers full parameters temporarily.
+\item Reduce checkpoint time with sharded saves, fewer large files, less frequent saves, and async writing.
+\item For every parameter, optimizer stores momentum and variance; optimizer memory can be around \(2\times\) model size.
+\item Also save step count and learning-rate scheduler state.
+\item Restoring only weights (without optimizer state) loses optimizer history and can behave like partial reset.
+\end{itemize}
+
+\keysent{What to save (minimum from your notes):}
+\begin{itemize}
+\item model weights (sharded)
+\item optimizer state (sharded)
+\item global step
+\item LR scheduler state
+\item RNG state
+\item ideally sampler state
+\end{itemize}
+
+\keysent{RNG APIs in your notes:}
+\begin{itemize}
+\item \texttt{torch.get\_rng\_state()}
+\item \texttt{torch.cuda.get\_rng\_state\_all()}
+\item \texttt{numpy.random.get\_state()}
+\item \texttt{random.getstate()}
+\end{itemize}
+
+\keysent{Why this matters:} dropout and data shuffling depend on RNG, so resume is not deterministic without restoring RNG state.
+
+\begin{redbox}{Hard Question}
+How do you checkpoint a 70B model efficiently?
+
+\begin{itemize}
+\item do not gather full model to one GPU
+\item save sharded checkpoints
+\item save optimizer state
+\item save training step + RNG state
+\item write fewer large files, not thousands of small files
+\end{itemize}
+
+\keysent{Scale note from your content:}
+\begin{itemize}
+\item in BF16, weights alone can be very large (your note: about 140 GB)
+\item Adam adds momentum and variance states, so total distributed training state can be much larger (your note: around 400 GB)
+\item gathering to one GPU can lead to OOM
+\end{itemize}
+
+\keysent{What to implement from your notes:}
+\begin{itemize}
+\item in FSDP or ZeRO-3, each GPU saves its parameter shard and optimizer shard
+\item use sharded checkpointing
+\item avoid consolidation unless exporting for inference
+\end{itemize}
+\end{redbox}
+
+\vspace{2cm}
+
+% ======================================================
+\section{Mixed Precision + Numerical Stability}
+% ======================================================
+
+\subsection{FP16 vs BF16}
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{2.2cm}|X|X|}
+\hline
+\textbf{Format} & \textbf{Bit layout from your notes} & \textbf{Key point} \\
+\hline
+FP16 & 16 bits total, 5-bit exponent, 10-bit mantissa & Smaller dynamic range; more prone to underflow/overflow. \\
+\hline
+BF16 & 16 bits total, 8-bit exponent, 7-bit mantissa & FP32-like exponent range; more stable in practice. \\
+\hline
+\end{tabularx}
+}
+
+\begin{itemize}
+\item Why BF16 is more stable: same exponent range as FP32, so large and small numbers are represented more safely.
+\item Why FP16 may diverge: gradients can underflow to zero or overflow to infinity due to limited exponent range.
+\end{itemize}
+
+\subsection{Loss Scaling}
+\begin{itemize}
+\item Needed because FP16 has a small dynamic range.
+\item Very small gradients may underflow to zero.
+\item Scale loss before backward, then divide gradients by the scale after backward.
+\item \textbf{Static scaling:} constant scale.
+\item \textbf{Dynamic scaling:} preferred in your notes; adjusts scale based on overflow detection.
+\end{itemize}
+
+\subsection{Gradient Overflow}
+\begin{itemize}
+\item Overflow happens when gradient values exceed representable range.
+\item Symptoms: loss becomes NaN, gradients contain \texttt{inf}, training diverges suddenly.
+\item Detection from your notes:
+\begin{itemize}
+\item \texttt{torch.autograd.detect\_anomaly()}
+\item GradScaler checks
+\item \texttt{torch.isnan(tensor).any()}
+\end{itemize}
+\item Causes from your notes: large activations, unstable learning rates, insufficient loss scaling in FP16.
+\item Debug from your notes: check overflow, reduce learning rate, enable gradient clipping, switch to BF16, inspect layer outputs.
+\end{itemize}
+
+\subsection{Stability Tradeoffs}
+\begin{itemize}
+\item \textbf{Memory savings:} 16-bit instead of 32-bit gives roughly \(2\times\) memory savings.
+\item \textbf{Throughput increase:} Tensor Cores are optimized for FP16/BF16.
+\item \textbf{Numerical risk:} reduced precision can increase rounding and accumulation error.
+\end{itemize}
+
+\keysent{Typical strategy from your notes:}
+\begin{itemize}
+\item store master weights in FP32
+\item compute in FP16 or BF16
+\item reduce in FP16 or BF16
+\item update in FP32
+\end{itemize}
+
+\keysent{Common Q\&A from your notes:}
+\begin{itemize}
+\item Why keep master weights in FP32? To preserve update precision and reduce accumulated rounding error.
+\item When avoid mixed precision? Unstable models, small-model debugging, or unsupported hardware.
+\item Why can large batching increase instability risk? Larger batches can increase gradient magnitude and overflow risk at low precision.
+\end{itemize}
+
+\vspace{2cm}
+
+% ======================================================
+\section{Scheduler + Orchestration}
+% ======================================================
+
+\subsection{Slurm}
+\textbf{Slurm} stands for \textit{Simple Linux Utility for Resource Management}.
+
+\begin{itemize}
+\item \texttt{sbatch} vs \texttt{srun}
+\begin{itemize}
+\item \texttt{sbatch}: non-interactive, queued, runs when resources are available; commonly used for long training jobs, production runs, and multi-node jobs.
+\item \texttt{srun}: launches tasks; interactive or used inside allocation; common for launching distributed training processes.
+\end{itemize}
+
+\item Partitions
+\begin{itemize}
+\item Logical queues (for example: gpu, cpu, highmem, debug).
+\item Configured in \texttt{slurm.conf}.
+\item Each partition has time limits, node restrictions, and resource limits.
+\item Used to separate workloads, enforce policies, and control access for different job types.
+\end{itemize}
+
+\item GPU allocation
+\begin{itemize}
+\item In Slurm:
+\texttt{\#SBATCH --gres=gpu:4}
+\item GRES = generic resources.
+\item Slurm assigns GPU IDs and sets \texttt{CUDA\_VISIBLE\_DEVICES}.
+\item Multi-node example:
+\texttt{\#SBATCH --nodes=2}\\
+\texttt{\#SBATCH --ntasks-per-node=4}\\
+\texttt{\#SBATCH --gres=gpu:4}
+\end{itemize}
+
+\item Fairshare
+\begin{itemize}
+\item Slurm tracks historical usage.
+\item If you used many GPUs recently, your priority can drop.
+\item Fairshare improves fairness and prevents monopolization.
+\item Priority factors: fairshare, job age, QoS, partition priority.
+\end{itemize}
+\end{itemize}
+
+\subsection{Kubernetes}
+Here scheduling is for containers, not raw processes.
+Typical use from your notes: cloud GPU clusters, microservices, ML platforms (EKS/GKE/AKS).
+
+\begin{itemize}
+\item Pods
+\begin{itemize}
+\item Smallest deployable unit.
+\item Contains one or more containers with shared network and storage.
+\end{itemize}
+\begin{lstlisting}[language=yaml, caption={Pod GPU limit sketch from notes}]
+resources:
+  limits:
+    nvidia.com/gpu: 1
+\end{lstlisting}
+
+\item GPU resource requests
+\begin{itemize}
+\item Kubernetes uses a device plugin for GPU resources.
+\end{itemize}
+\begin{lstlisting}[language=yaml, caption={Kubernetes GPU request/limit sketch from notes}]
+resources:
+  requests:
+    nvidia.com/gpu: 2
+  limits:
+    nvidia.com/gpu: 2
+\end{lstlisting}
+\begin{itemize}
+\item Scheduler assigns a node with enough GPUs and exposes them to the container.
+\item Kubernetes knows GPU resources via device-plugin registration.
+\end{itemize}
+
+\item Scheduling policies
+\begin{itemize}
+\item Scheduler considers CPU, memory, GPU, node labels, taints/tolerations, and affinity.
+\end{itemize}
+\begin{lstlisting}[language=yaml, caption={Node selector sketch from notes}]
+nodeSelector:
+  gpu-type: a100
+\end{lstlisting}
+
+\item Auto-scaling
+\begin{itemize}
+\item Kubernetes can scale pods and clusters.
+\item Useful for inference and dynamic training environments.
+\end{itemize}
+\end{itemize}
+
+\keysent{Q\&A from your notes:}\par
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{4.1cm}|X|}
+\hline
+\textbf{Question} & \textbf{Answer from your notes (cleaned)} \\
+\hline
+Why is autoscaling useful for ML? & Inference demand fluctuates, and training clusters may need to add/remove GPU nodes dynamically. \\
+\hline
+Slurm vs Kubernetes for ML workloads? & Slurm: HPC-oriented, better for tightly coupled multi-node training, native MPI/NCCL integration, lower overhead. Kubernetes: container-native, easier cloud integration, built-in autoscaling, flexible workload types. \\
+\hline
+Why might distributed training hang under Slurm? & Wrong environment variables, firewall between nodes, incorrect tasks-per-node, misconfigured NCCL. \\
+\hline
+How does Slurm integrate with DDP? & Slurm sets env vars like \texttt{SLURM\_PROCID} and \texttt{SLURM\_NODEID} that can initialize rank and world size. \\
+\hline
+Why might Kubernetes be worse for tightly coupled training? & Higher networking overhead, container abstraction layers, and less optimized HPC fabric integration compared to Slurm. \\
+\hline
+How would you schedule multi-node DDP on Kubernetes? & Use StatefulSets or custom job controllers with proper rank assignment and headless services for communication. \\
+\hline
+What is gang scheduling? & Allocate all resources for a distributed job simultaneously to avoid partial scheduling. \\
+\hline
+\end{tabularx}
+}
+
+\vspace{2cm}
+
+% ======================================================
+\section{Storage Systems}
+% ======================================================
+
+\begin{bluebox}{Storage Layers from your notes}
+\begin{itemize}
+\item local NVMe (fast per node)
+\item parallel filesystem (Lustre/GPFS/BeeGFS)
+\item possible object storage (S3-like)
+\end{itemize}
+For large-scale ML, shared parallel storage is critical.
+\end{bluebox}
+
+\begin{itemize}
+\item Lustre architecture
+Lustre is a parallel distributed filesystem used in HPC.
+
+It separates metadata and data storage.
+
+\textbf{Components:}
+\begin{enumerate}[leftmargin=1.4em]
+\item \textbf{MDS (metadata server)}: stores filenames, permissions, directory structure, and file-location mapping; handles \texttt{open()}, \texttt{close()}, \texttt{stat()} metadata operations.
+\item \textbf{MDT (metadata target)}: storage device behind MDS.
+\item \textbf{OSS (object storage server)}: handles actual file data.
+\item \textbf{OST (object storage target)}: stores file data blocks.
+\end{enumerate}
+
+Files are striped across multiple OSTs for parallel access.
+
+What happens when you open a file?
+\begin{itemize}
+\item client asks MDS for metadata
+\item MDS returns file layout
+\item client reads data directly from OST
+\end{itemize}
+
+Q: Why separate metadata and data?  
+To allow parallel data access across multiple storage targets while centralizing lighter metadata operations.
+
+Q: What happens when metadata server is overloaded?  
+File open/stat operations slow down, causing random stalls even when data bandwidth is fine.
+
+\item Metadata server
+This is where many ML workloads fail.
+
+ML datasets often contain:
+\begin{itemize}
+\item millions of small image files
+\item many file opens per batch
+\item multiple DataLoader workers per GPU
+\end{itemize}
+
+Each worker may call \texttt{open()} thousands of times. If many GPUs do this simultaneously, metadata storms occur.
+
+Symptoms:
+\begin{itemize}
+\item random training stalls
+\item high IOPS but low throughput
+\item GPU utilization fluctuates
+\item CPU waits on I/O
+\end{itemize}
+
+Detection:
+\begin{itemize}
+\item \texttt{iostat -xm 1} (look for high \texttt{\%util} and high wait)
+\item \texttt{lfs df -h} on Lustre
+\end{itemize}
+
+Q: Why do small files hurt parallel filesystems?  
+Each file access needs metadata lookup, which can overwhelm the metadata server.
+
+Q: Why might training stall randomly?  
+Metadata server bottlenecks under high concurrent file-open rates.
+
+\item Small file problem
+Very common in ML.
+
+Example from your notes: ImageNet has many small JPEG files.
+
+Per batch, many files are opened repeatedly across many GPUs.
+
+Problem:
+\begin{itemize}
+\item high metadata overhead
+\item poor sequential read efficiency
+\item high open/close syscall overhead
+\end{itemize}
+
+Solutions from your notes:
+\begin{itemize}
+\item pack into larger containers: TFRecord, WebDataset, LMDB, HDF5
+\item increase striping: \texttt{lfs setstripe -c 4 myfile}
+\item cache locally (for example: \texttt{rsync -av dataset /local\_nvme/})
+\end{itemize}
+
+Q: How to fix the small-file problem?  
+Batch files into larger shard files to reduce metadata lookups and improve sequential I/O.
+
+\item Parallel IO
+Lustre allows files to be striped across multiple OSTs so clients can read in parallel.
+
+Striping improves bandwidth; \texttt{lfs getstripe filename} shows file striping.
+
+Why parallel I/O matters:
+\begin{itemize}
+\item large model checkpointing (100+ GB)
+\item many GPUs reading simultaneously
+\item need aggregate bandwidth
+\end{itemize}
+
+Without striping:
+\begin{itemize}
+\item single-OST bottleneck
+\item slower checkpoint save/load
+\end{itemize}
+
+What is file striping?  
+Dividing file data across multiple storage targets to enable parallel read/write.
+
+When would you increase stripe count?  
+For large files like checkpoints to increase aggregate throughput.
+
+Common GPU cluster storage failures from your notes:
+\begin{itemize}
+\item GPUs at 40\% utilization caused by data pipeline I/O bottlenecks and metadata overload
+\item checkpoints taking minutes due to single-OST bottleneck, insufficient striping, or network congestion
+\item random stalls due to shared filesystem contention and too many simultaneous jobs
+\end{itemize}
+
+Q: Why might local NVMe be faster than Lustre?  
+It removes network overhead and metadata contention, giving lower latency and more consistent per-node throughput.
+
+Q: Why is a parallel filesystem needed?  
+Multi-node training needs shared access to datasets and checkpoints.
+
+Q: Why can distributed training amplify I/O issues?  
+Many ranks read simultaneously, multiplying metadata and bandwidth pressure.
+
+Q: Why does checkpointing stall other jobs?  
+Large parallel writes can saturate shared OST bandwidth and metadata operations.
+
+Storage and GPU scaling connection: scaling GPU count increases data-read parallelism, checkpoint write pressure, and metadata operations, so storage becomes a bottleneck at scale.
+
+\end{itemize}
+
+% ======================================================
+\section{Cloud vs On-Prem Tradeoffs}
+% ======================================================
+
+\begin{itemize}
+\item Spot instances
+Cloud providers (for example AWS/GCP) offer discounted compute capacity with interruption risk.
+
+Your notes: often around 50--90\% cheaper; useful for hyperparameter sweeps, non-critical jobs, and fault-tolerant workloads.
+
+Risks: instance termination, loss of local storage, and distributed job collapse.
+
+Use spot safely (from your notes): frequent checkpointing, TorchElastic, distributed job managers, persistent object storage for checkpoints.
+
+Q: How would you train a 70B model on spot instances?  
+Only if the framework supports fault tolerance and elastic recovery; otherwise interruption risk may waste compute.
+
+Q: How make distributed training resilient to spot termination?  
+Use elastic training, periodic checkpointing to persistent storage, and automatic rank rejoin/restart.
+
+\item Cost optimization
+On-prem vs cloud cost model from your notes includes GPU hours, storage, bandwidth, data egress fees, idle resources, and networking.
+
+Q: Why might cloud training be more expensive?  
+High GPU-hour rates plus large-scale distributed networking/storage costs.
+
+Q: When is on-prem cheaper?  
+When GPU utilization is consistently high over long periods and hardware cost is amortized.
+
+Q: Hidden cloud costs in ML?  
+Data egress fees and underutilized reserved capacity.
+
+\item Elastic scaling
+Ability to add/remove nodes dynamically and adjust cluster size with demand.
+
+Cloud strengths: autoscaling groups, Kubernetes cluster autoscaler, dynamic node provisioning.
+
+On-prem limitation: fixed node pool; cannot instantly add GPUs; needs hardware procurement.
+
+TorchElastic points from your notes:
+\begin{itemize}
+\item allows ranks to leave/join
+\item reforms process groups
+\item handles failures
+\end{itemize}
+
+Scenario from your notes: training can lose 1--2 workers, restart, and continue from latest checkpoint.
+
+Instead of fixed world size, TorchElastic uses rendezvous coordination, dynamic membership (min/max workers), and automatic restart on failure.
+
+When a worker dies: collectives fail, worker group restarts, ranks/world size reform, and script resumes from checkpoint.
+
+Q: Why is elastic scaling hard for distributed training?  
+Most frameworks assume fixed world size and static ranks; changing size requires communication-group changes.
+
+Q: Why is elasticity easier for inference than training?  
+Inference is stateless per request, while training requires synchronized gradient updates.
+
+\begin{lstlisting}[language=Python, caption={TorchElastic resume sketch from notes}]
+import os
+import time
+import torch
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+
+CHECKPOINT_PATH = "ckpt.pt"
+
+def setup_distributed():
+    """
+    TorchElastic (torchrun) sets these env vars:
+      - RANK, LOCAL_RANK, WORLD_SIZE
+      - MASTER_ADDR, MASTER_PORT (or rendezvous handles it)
+    """
+    dist.init_process_group(backend="nccl")
+    local_rank = int(os.environ["LOCAL_RANK"])
+    torch.cuda.set_device(local_rank)
+    return local_rank
+
+def build_model():
+    model = torch.nn.Linear(1024, 1024).cuda()
+    return model
+
+def save_checkpoint(ddp_model, optimizer, step: int):
+    if dist.get_rank() == 0:
+        ckpt = {
+            "step": step,
+            "model": ddp_model.module.state_dict(),
+            "optim": optimizer.state_dict(),
+        }
+        torch.save(ckpt, CHECKPOINT_PATH)
+
+def load_checkpoint(ddp_model, optimizer):
+    if os.path.exists(CHECKPOINT_PATH):
+        ckpt = torch.load(CHECKPOINT_PATH, map_location="cpu")
+        ddp_model.module.load_state_dict(ckpt["model"])
+        optimizer.load_state_dict(ckpt["optim"])
+        return int(ckpt["step"])
+    return 0
+
+def main():
+    local_rank = setup_distributed()
+    model = build_model()
+    ddp_model = DDP(model, device_ids=[local_rank])
+    optimizer = torch.optim.AdamW(ddp_model.parameters(), lr=1e-3)
+    start_step = load_checkpoint(ddp_model, optimizer)
+
+    for step in range(start_step, start_step + 10_000):
+        optimizer.zero_grad(set_to_none=True)
+        x = torch.randn(32, 1024, device="cuda")
+        y = ddp_model(x).sum()
+        y.backward()
+        optimizer.step()
+        if step % 200 == 0:
+            save_checkpoint(ddp_model, optimizer, step)
+        if dist.get_rank() == 0 and step % 200 == 0:
+            print(f"[step={step}] world_size={dist.get_world_size()} ok")
+
+    dist.destroy_process_group()
+
+if __name__ == "__main__":
+    main()
+\end{lstlisting}
+
+Here is the Slurm script to run this:
+\begin{lstlisting}[language=bash, caption={Slurm + torchrun launch sketch from notes}]
+# inside an allocation with 2 nodes, 4 GPUs/node = 8 procs total
+export RDZV_ENDPOINT="$(scontrol show hostnames $SLURM_NODELIST | head -n1):29400"
+export NNODES=$SLURM_NNODES
+
+srun bash -c '
+  torchrun \
+    --nnodes='"$NNODES"' \
+    --nproc_per_node=4 \
+    --rdzv_backend=c10d \
+    --rdzv_endpoint='"$RDZV_ENDPOINT"' \
+    --rdzv_id=job123 \
+    --max_restarts=10 \
+    train_elastic.py
+'
+\end{lstlisting}
+
+RDZV endpoint is where workers meet, \texttt{max\_restarts} controls tolerated failures, and \texttt{rdzv\_id} is the rendezvous room name that must match.
+
+Q: If a worker dies, does training continue instantly?  
+Not usually. Current process group breaks; TorchElastic restarts workers and reforms ranks; resume happens via checkpoint load.
+
+Q: What do you need to checkpoint for correct resume?  
+Minimum: model weights, optimizer state, global step. Ideally: RNG state and sampler state.
+
+Q: Does world size change automatically?  
+It can, depending on min/max config; many setups keep world size constant and only restart on failures.
+
+Biggest pitfall from your notes: script restarts from scratch unless resume-from-checkpoint logic is implemented.
+
+With autoscaling, a job can start at minimum nodes and grow toward max nodes as more capacity arrives.
+
+\item Network topology differences
+Uses AWS Elastic Fabric Adapter (EFA) instead of InfiniBand in many cloud setups.
+
+Data is often in S3, but large multi-node training is usually better when data is staged locally or served by a high-performance filesystem to avoid high latency.
+
+Uses Scalable Reliable Datagram (SRD), designed to handle congestion via multipath networking.
+
+Large-scale training depends on AllReduce bandwidth, low latency, and network determinism; cloud can introduce higher jitter and bandwidth variability.
+
+Jitter is variability in network latency. It causes synchronization delays and amplifies straggler effects in distributed training.
+
+\end{itemize}
+
+% ======================================================
+\section{Researcher Productivity Metrics}
+% ======================================================
+
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{2.8cm}|X|X|}
+\hline
+\textbf{Metric} & \textbf{What to measure from your notes} & \textbf{Interpretation from your notes} \\
+\hline
+GPU utilization & \texttt{nvidia-smi}, \texttt{nvidia-smi dmon}, \texttt{nsys}. & Under ~40\% often underperforming; around ~90\% can indicate healthy compute-bound behavior (but still check queue/convergence). \\
+\hline
+Queue time & submission \(\rightarrow\) job start; track average and P95 wait time. & Lower queue time improves researcher iteration speed. \\
+\hline
+Time-to-convergence & wall-clock time to target accuracy/loss (not epochs). & Most important end metric; throughput alone is insufficient. \\
+\hline
+Experiment reproducibility & controlled RNG, stable environment, deterministic ops, proper checkpointing. & Without reproducibility, debugging and conclusions are unreliable. \\
+\hline
+Cost per training run & \(\text{cost}=\text{GPU hours}\times\text{cost per GPU hour}\) + storage/network/engineering. & Key for cost per experiment/model/inference impact. \\
+\hline
+\end{tabularx}
+}
+
+\keysent{Notes from your content:}
+\begin{itemize}
+\item Low utilization causes: DataLoader bottleneck, network bottleneck, small batch size, poor overlap, CPU starvation.
+\item Reduce queue time with scheduling policy improvements, fairshare tuning, dedicated partitions, preemption, and cloud elasticity.
+\item If throughput improves but time-to-convergence does not: check scaling efficiency, communication bottlenecks, LR scaling, and batch-size optimization effects.
+\item Improve reproducibility: fix seeds, log environment, version data/code, save full training state.
+\item Reduce run cost: increase scaling efficiency, use mixed precision, optimize batch size, reduce failed runs, use spot safely.
+\end{itemize}
+
+\begin{greenbox}{Prompt}
+How do you measure infrastructure impact?
+\begin{enumerate}[leftmargin=1.3em]
+\item Define baseline:
+\begin{itemize}
+\item GPU utilization
+\item queue time
+\item step time
+\item time to convergence
+\item failure rate
+\item cost per run
+\end{itemize}
+\item Apply infrastructure improvements:
+\begin{itemize}
+\item better networking
+\item improved data loader
+\item FSDP adoption
+\item storage caching
+\end{itemize}
+\item Remeasure and compare:
+\begin{itemize}
+\item percent improvement in step time
+\item reduction in queue time
+\item reduction in job failures
+\item reduction in cost per convergence
+\end{itemize}
+\end{enumerate}
+\end{greenbox}
+
+\vspace{2cm}
+\section{Rapid-Fire Questions Section}
+% ======================================================
+
+\begin{bluebox}{Rapid-Fire: One-Line Answer Bank}
+\begin{itemize}
+\item \textbf{Why doesn't scaling linearly improve speed?} Distributed training adds communication and synchronization overhead (for example, AllReduce). As GPU count grows, network contention, latency amplification, and straggler effects grow too. If global batch size stays constant, per-GPU compute shrinks and communication-to-compute ratio worsens, so scaling becomes network-bound.
+
+\item \textbf{What is gradient accumulation?} Gradients from multiple forward/backward micro-steps are accumulated before one optimizer step. This simulates a larger effective batch without requiring a larger per-step memory footprint.
+
+\item \textbf{What is microbatching?} A large batch is split into smaller microbatches processed sequentially (often in pipeline parallelism). This keeps devices busier and reduces pipeline idle time, but increases scheduling complexity.
+
+\item \textbf{What causes NCCL deadlocks?} Mismatched collective calls across ranks, crashed ranks, wrong world-size/rank initialization, firewall/network misconfiguration, or version/runtime mismatch. One misbehaving rank can stall the job.
+
+\item \textbf{Why do small files hurt Lustre?} Each file open requires metadata operations. With many workers and many GPUs, metadata requests explode and overload the metadata server, causing random stalls and low GPU utilization.
+
+\item \textbf{Why does large batch size hurt generalization?} Large batches reduce gradient noise and can converge to sharper minima that generalize worse. They also require correct learning-rate scaling.
+
+\item \textbf{What is straggler effect?} One slow worker delays all others at synchronization points, so overall step time is determined by the slowest rank.
+
+\item \textbf{What is NUMA?} Non-uniform memory access: memory latency depends on CPU socket locality. Remote-memory/PCIe access paths can hurt performance.
+
+\item \textbf{What is PCIe bottleneck?} Host-device or inter-device transfers saturate PCIe bandwidth, limiting throughput when communication/memory movement dominates.
+
+\item \textbf{What is kernel fusion?} Multiple operations are combined into one kernel launch to reduce memory traffic and launch overhead, improving locality and throughput.
+
+\item \textbf{What is compute intensity?} Arithmetic operations per byte transferred (FLOPs/byte). High intensity is usually compute-bound; low intensity is usually memory-bound.
+
+\item \textbf{Why does communication dominate at scale?} As rank count rises, collective overhead grows while per-rank compute can shrink, so synchronization time can dominate step time.
+
+\item \textbf{What happens if one rank crashes?} In synchronous training, collectives fail/hang and the job typically stops. In elastic setups, the worker group restarts and resumes from checkpoint.
+
+\item \textbf{What is asynchronous training?} Workers update parameters without strict step-by-step synchronization. Throughput can increase, but gradient staleness may hurt convergence stability.
+
+\item \textbf{What is pipeline bubble?} Idle time at pipeline fill/drain phases in pipeline parallel training. Bubble overhead increases when stage count is high relative to microbatch count.
+
+\item \textbf{What is memory fragmentation?} Repeated allocations/deallocations leave non-contiguous free memory blocks; OOM can occur despite enough total free memory.
+
+\item \textbf{What is KV cache?} During autoregressive inference, key/value tensors from previous tokens are stored and reused to avoid recomputing full attention each step.
+
+\item \textbf{What is tensor parallel shard?} A partition of large tensors/weights across GPUs (row-wise or column-wise). Each GPU computes partial outputs, then results are gathered/reduced.
+
+\item \textbf{What is gradient clipping?} Limits gradient norm/magnitude to prevent exploding gradients and improve training stability.
+
+\item \textbf{What is elastic training?} Training that tolerates worker failures/membership changes via rendezvous and restart logic, typically resuming from checkpoints.
+\end{itemize}
+\end{bluebox}
+
+\vspace{2cm}
+
+% ======================================================
+\section{Whiteboard System Design Prompts}
+% ======================================================
+
+\begin{greenbox}{Design Prompts}
+\begin{itemize}
+\item Design multi-tenant GPU scheduling system
+\item Design distributed LLM inference cluster
+\item Design hyperparameter search system
+\item Design fault-tolerant distributed training
+\item Design GPU utilization monitoring dashboard
+\end{itemize}
+\end{greenbox}
+
+\subsection{Design multi-tenant GPU scheduling system}
+\keysent{Clarify first:} on-prem vs cloud vs hybrid.
+
+\textbf{Core design from your notes:}
+\begin{enumerate}[leftmargin=1.3em]
+\item Fairness and quotas: guaranteed quota + burst quota per team; weighted fairshare/DRF-style policy to prevent monopolization.
+\item Scheduling strategy: two-level scheduling (choose tenant, then highest-priority job in tenant). Support interactive, production inference, and batch classes.
+\item Placement strategy: topology-aware placement; prefer same NVLink domain/same node before cross-node. Use gang scheduling for multi-node distributed jobs.
+\item Preemption and isolation: preempt best-effort jobs with checkpoint grace periods; enforce GPU/network/storage isolation per tenant.
+\item Observability: expose clear pending reasons (quota exceeded, waiting for gang allocation, topology constraints).
+\end{enumerate}
+
+\textbf{Questions to expect:}
+\begin{itemize}
+\item How do you prevent fragmentation? Bin-pack small jobs and reserve capacity pools for 8--16 GPU gang allocations.
+\item How do you handle distributed jobs? Gang scheduling so all required GPUs are allocated atomically.
+\item How do you keep utilization high? Backfilling + burst capacity when quotas are underused.
+\item Hardest problem? Balancing fairness and utilization while avoiding fragmentation and starvation.
+\end{itemize}
+
+\subsection{Design distributed LLM inference cluster}
+\keysent{Clarify first:} latency target (P50/P99), tokens/sec, traffic shape, model sizes, hardware, and multi-tenancy constraints.
+
+\textbf{Architecture from your notes:}
+\begin{itemize}
+\item LLM-aware router in front of GPU worker groups.
+\item Continuous batching + KV cache management.
+\item Admission control by tenant quotas and estimated KV-memory footprint.
+\item Route by cache locality and headroom.
+\item Use tensor parallelism for larger models; combine TP within node + pipeline across nodes when needed.
+\item Reliability via health checks, circuit breakers, graceful draining, and canary rollouts.
+\item Observability: TTFT, per-token latency, tokens/sec, KV eviction/swap rates.
+\end{itemize}
+
+\textbf{Questions to expect:}
+\begin{itemize}
+\item Main bottleneck? Often memory bandwidth + KV cache capacity/management.
+\item How keep P95 low with batching? Separate interactive pools, cap token budgets, prioritize short requests.
+\item What if KV cache does not fit? Paged KV cache and controlled CPU/NVMe offload fallback.
+\item How do you scale? Add model-group replicas and autoscale per model and priority tier.
+\end{itemize}
+
+\subsection{Design hyperparameter search system}
+\keysent{Clarify first:} objective (best quality, fastest time-to-best, or cost cap), workload type, search space, cluster constraints, and reporting metrics.
+
+\textbf{Core architecture from your notes:}
+\begin{itemize}
+\item Orchestrator proposes trials.
+\item Scheduler launches trials (Slurm/Kubernetes) with quotas and fairshare.
+\item Workers report metrics and checkpoints.
+\item Default algorithm: ASHA/Hyperband for scalable early stopping; optional TPE for expensive trials.
+\item Intermediate metrics stream back for early stop and reprioritization.
+\item Checkpoint/resume is first-class for preemption/spot.
+\item Centralized stores for trial configs, metrics, artifacts, reproducibility metadata, and UI ranking.
+\end{itemize}
+
+\textbf{Questions to expect:}
+\begin{itemize}
+\item Why random search over grid? In high dimensions, random exploration is often more efficient.
+\item Why ASHA? Massively parallel and saves GPU time by early-stopping bad trials.
+\item How handle noisy metrics? Smoothing, minimum-step rules, repeated runs for top candidates.
+\item Biggest bottleneck? GPU availability/scheduling and storage metadata pressure if checkpointing too frequently.
+\item How avoid wasting GPUs? Early stopping, OOM/NaN detection, health checks, automatic retry/resume.
+\end{itemize}
+
+\subsection{Design fault-tolerant distributed training}
+\textbf{Design summary from your notes:}
+\begin{itemize}
+\item Treat training as a restartable worker group.
+\item Use consistent sharded checkpoints.
+\item Add watchdog/heartbeat-based failure and hang detection.
+\item Use elastic rendezvous so workers can reform and resume from latest committed checkpoint.
+\item Save optimizer state + RNG state; avoid full-state gather that can cause OOM.
+\end{itemize}
+
+\textbf{Questions to expect:}
+\begin{itemize}
+\item What if one rank crashes in DDP? Collectives fail/hang; job restarts in elastic setup.
+\item How checkpoint FSDP/ZeRO-3 efficiently? Save per-rank shards; avoid full gather; include optimizer/scheduler/RNG.
+\item How avoid corrupted checkpoints? Two-phase commit (temp + manifest + atomic done marker).
+\item How detect hangs vs slow steps? Heartbeat/progress thresholds + correlate with NCCL logs and GPU utilization.
+\item Biggest pitfall? Not saving optimizer/RNG state; full checkpoint consolidation causing OOM; misdiagnosing DataLoader vs NCCL bottlenecks.
+\end{itemize}
+
+\subsection{Design GPU utilization monitoring dashboard}
+\textbf{Goal from your notes:}
+Build a Grafana dashboard backed by Prometheus, enriched with Slurm/Kubernetes metadata and application training metrics.
+
+\textbf{Core dashboard views:}
+\begin{itemize}
+\item SM utilization
+\item NCCL time
+\item DataLoader I/O time
+\item throttling/thermal signals
+\item tenant-level waste attribution
+\end{itemize}
+
+\textbf{Questions to expect:}
+\begin{itemize}
+\item How map GPU utilization to a specific job? Join scheduler allocation metadata (job \(\rightarrow\) node \(\rightarrow\) GPU IDs) with per-GPU metrics labels.
+\item Most actionable metrics? SM utilization + NCCL time + DataLoader time.
+\item What alerts? GPUs idle while allocated, ECC/Xid spikes, thermal throttling, NCCL failures, filesystem latency spikes, sustained low utilization by tenant.
+\item How avoid metric-overload cost? 1--5s scrape for critical GPU metrics, downsample long-term, and selectively enable high-cardinality labels.
+\end{itemize}
+
+\subsection{Simulation 1: Multi-Tenant Heavy Transformer Training (Communication/Network Bottleneck)}
+
+\begin{greenbox}{Scenario from your notes}
+Scale from 8 GPUs on one NVLink node (\(\sim85\%\) efficiency) to 32 GPUs across 4 InfiniBand-connected nodes, and efficiency drops to \(\sim60\%\) with high GPU idle time.
+\end{greenbox}
+
+\textbf{Diagnostic flow (cleaned):}
+\begin{enumerate}[leftmargin=1.3em]
+\item Check coarse utilization first (\texttt{nvidia-smi}, DCGM): low SM util + high wait usually means comm or input bottleneck.
+\item Use deterministic profiling (\texttt{nsys} + PyTorch profiler): quantify NCCL time vs compute time.
+\item Inspect NCCL behavior:
+\begin{itemize}
+\item \texttt{NCCL\_DEBUG=INFO}, \texttt{NCCL\_DEBUG\_SUBSYS=ALL}
+\item verify topology and fabric path (\texttt{nvidia-smi topo -m})
+\item confirm traffic is actually on InfiniBand/RDMA, not fallback paths
+\end{itemize}
+\item Check batch math:
+\[
+\text{per-GPU batch}=\frac{\text{global batch}}{\#\text{GPUs}}
+\]
+If global batch is fixed while GPU count increases, per-GPU compute shrinks and communication dominates.
+\end{enumerate}
+
+\begin{redbox}{Why Scaling Stops Being Linear}
+Synchronous training has barrier-like behavior at collectives.  
+One slower rank (CPU jitter, loader delay, network tail latency) can stall all others, so end-to-end step time tracks the slowest rank.
+\end{redbox}
+
+\textbf{Mitigations from your notes (organized):}
+\begin{itemize}
+\item Increase global batch (or use gradient accumulation) to improve compute/communication ratio.
+\item Tune DDP bucket size for overlap of backward compute and communication.
+\item Use hierarchical collectives for multi-node jobs (intra-node first, then inter-node).
+\item Keep TP-heavy communication mostly intra-node when possible.
+\end{itemize}
+
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{2.8cm}|X|X|}
+\hline
+\textbf{Transport} & \textbf{Path cost} & \textbf{Training impact} \\
+\hline
+TCP/IP sockets & More host copies + kernel/network stack overhead & Higher latency and CPU overhead at scale \\
+\hline
+RDMA (InfiniBand/EFA) & NIC offload + lower software overhead data path & Better collective latency/bandwidth behavior \\
+\hline
+\end{tabularx}
+}
+
+\subsection{Simulation 2: Memory Monster (100B model on 64 A100 GPUs)}
+
+\begin{greenbox}{Scenario from your notes}
+Design distributed training for a 100B-parameter model. The main problem is memory capacity, not raw compute throughput.
+\end{greenbox}
+
+\textbf{Why vanilla DDP fails (cleaned math from your notes):}
+\begin{itemize}
+\item FP16 weights: \(2\) bytes/param \(\Rightarrow 200\) GB.
+\item FP16 gradients: \(2\) bytes/param \(\Rightarrow 200\) GB.
+\item FP32 master weights: \(4\) bytes/param \(\Rightarrow 400\) GB.
+\item Adam states (\(m,v\)): \(8\) bytes/param \(\Rightarrow 800\) GB.
+\end{itemize}
+Total model-state footprint \(\approx 16\) bytes/param \(\Rightarrow\) \(\sim1.6\) TB (excluding activation peaks).
+
+\begin{redbox}{Implication}
+No single 80 GB A100 can hold this full training state.  
+You need sharding and model-parallel strategies, not plain replicated DDP.
+\end{redbox}
+
+\textbf{Strategy stack from your notes:}
+\begin{itemize}
+\item \textbf{TP:} shard large matrix multiplies (usually best intra-node on NVLink/NVSwitch).
+\item \textbf{PP:} split layers into stages; manage bubble overhead with microbatching.
+\item \textbf{ZeRO/FSDP:} shard optimizer, gradients, and parameters to reduce per-GPU steady-state memory.
+\end{itemize}
+
+\textbf{ZeRO stage intuition (as you described):}
+\begin{itemize}
+\item ZeRO-1: shard optimizer states.
+\item ZeRO-2: shard optimizer states + gradients.
+\item ZeRO-3/FSDP FULL\_SHARD: shard optimizer states + gradients + parameters.
+\end{itemize}
+
+\[
+\text{Model-state memory per GPU (rough)} \;\propto\; \frac{1}{N}
+\]
+for fully sharded states across \(N\) ranks, with increased communication.
+
+\textbf{Checkpoint failure mode from your notes:}
+\begin{itemize}
+\item Training is stable, but periodic checkpoint save causes OOM.
+\item Root cause: accidental consolidation/all-gather of full model state onto one rank/device.
+\end{itemize}
+
+\textbf{Fix (organized):}
+\begin{itemize}
+\item Use distributed/sharded state dict checkpointing.
+\item Each rank writes its own parameter and optimizer shards.
+\item Save full resume context: model shards, optimizer shards, global step, LR scheduler, RNG state.
+\end{itemize}
+
+\subsection{Simulation 3: Data Starvation + Metadata Storm}
+
+\begin{greenbox}{Scenario from your notes}
+Train a large vision model with hundreds of millions of small JPEG files.  
+Observed: SM utilization around \(40\%\), CPU near \(100\%\), high I/O wait, low effective storage throughput.
+\end{greenbox}
+
+\textbf{Diagnosis (organized):}
+\begin{itemize}
+\item Low InfiniBand utilization and high CPU/I/O wait suggest input pipeline bottleneck, not NCCL.
+\item Too many small-file \texttt{open/stat} operations overwhelm metadata services.
+\item DataLoader workers stall waiting for metadata/file opens, then GPU queues drain.
+\end{itemize}
+
+\textbf{Why this happens on Lustre-like systems (from your notes):}
+\begin{itemize}
+\item Metadata (MDS/MDT) and data (OSS/OST) are separate paths.
+\item Small files create heavy metadata traffic before data reads can begin.
+\item High fan-out from many nodes \(\times\) many workers can create a metadata storm.
+\end{itemize}
+
+\begin{redbox}{Important Clarification}
+\texttt{pin\_memory=True} improves host-to-device transfer efficiency, but it does \textbf{not} solve metadata bottlenecks caused by millions of small files.
+\end{redbox}
+
+\textbf{Triage steps from your notes:}
+\begin{enumerate}[leftmargin=1.3em]
+\item Tune \texttt{num\_workers} empirically (avoid over-saturating CPU and metadata path).
+\item Enable \texttt{pin\_memory=True} for faster/asynchronous H2D staging.
+\item Use \texttt{prefetch\_factor} and \texttt{persistent\_workers=True}.
+\item Repack small files into larger sequential shards (WebDataset/TFRecord/LMDB).
+\item Add node-local caching on NVMe for repeatedly used datasets.
+\end{enumerate}
+
+{\footnotesize
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{3.1cm}|X|X|}
+\hline
+\textbf{Lever} & \textbf{What it fixes} & \textbf{What it does not fix} \\
+\hline
+\texttt{pin\_memory=True} & H2D transfer overhead and overlap & Metadata-server overload \\
+\hline
+Increase \texttt{num\_workers} (carefully) & CPU-side decoding/data prep parallelism & Small-file metadata storm at high worker counts \\
+\hline
+Shard dataset into large archives & Metadata lookup amplification + random small-file I/O & Poor model/network config issues \\
+\hline
+Node-local NVMe cache & Network/storage-array contention for reused data & First-load preprocessing cost \\
+\hline
+\end{tabularx}
+}
+
+\textbf{Orchestration choice after pipeline fixes (from your notes):}
+\begin{itemize}
+\item \textbf{Slurm strengths:} topology-aware placement for tightly coupled synchronous training.
+\item \textbf{Kubernetes strengths:} elasticity and cloud-native operations.
+\item \textbf{Kubernetes caveat for large distributed training:} usually needs gang scheduling and HPC-network-aware extensions (device plugins, multi-NIC/CNI tuning, scheduler extensions).
+\end{itemize}
+
+
+
+
+
+
+\vspace{2cm}
+
+% ======================================================
+\section{Your Personal Deep Dive Stories}
+% ======================================================
+
+\subsection{WaveHPC Impact Story}
+\textbf{Situation:}
+WaveHPC supported multi-GPU distributed training workloads across shared cluster resources. As adoption increased, you observed inconsistent GPU utilization, long queue times, and inefficient scheduling for multi-node jobs.
+
+\textbf{Task:}
+Improve cluster efficiency and ensure fair, scalable execution for distributed training workloads across Slurm-based scheduling and Kubernetes-based services.
+
+\textbf{Action:}
+\begin{itemize}
+\item Profiled cluster-wide GPU utilization with DGCM + Slurm metadata to identify idle GPUs during active allocations.
+\item Analyzed job logs and NCCL traces to detect communication bottlenecks and straggler effects.
+\item Identified workload imbalance across partitions and underutilized nodes.
+\item Implemented automation pipelines for:
+\begin{itemize}
+\item job onboarding (correct \texttt{ntasks}, GPU binding, NCCL environment setup)
+\item resource-aware Slurm submission defaults
+\item monitoring dashboards for SM utilization, I/O wait, and network usage
+\end{itemize}
+\item Tuned job packing and recommended per-GPU batch scaling to reduce communication overhead.
+\item Coordinated Slurm and Kubernetes CPU-pool segmentation for better multi-tenant isolation.
+\end{itemize}
+
+\textbf{Result:}
+\begin{itemize}
+\item improved cluster GPU utilization by \textbf{18\%}
+\item reduced queue-time variance for multi-GPU jobs
+\item decreased idle-GPU time during active allocations
+\item established repeatable workload templates for distributed training
+\end{itemize}
+
+\textbf{Follow-up questions to expect:}
+\begin{itemize}
+\item What metric defined utilization? Primarily SM utilization, with memory utilization and network throughput for bottleneck context.
+\item How did you separate compute underutilization from communication stalls? Low SM + high network implies communication bound; low SM + high CPU/I/O implies input bound.
+\item How did you detect stragglers? Compared per-rank step times/utilization across ranks.
+\item What happens when one rank is slower? Other GPUs block at synchronization; scaling efficiency drops.
+\item How does small per-GPU batch hurt scaling? Less compute per step makes communication cost dominate.
+\item How would you debug ~40\% GPU utilization? Check SM/memory utilization, NCCL time, DataLoader bottlenecks, network saturation, and stragglers.
+\item Why were GPUs idle while allocated? Likely communication stalls, DataLoader bottlenecks, or incorrect GPU binding.
+\item How prevent one tenant from monopolizing GPUs? Quotas + fairshare scheduling.
+\end{itemize}
+
+\subsection{High-Performance Matrix Inversion via Custom GPU Kernels}
+\textbf{Situation:}
+Matrix inversion on \(5\text{k}\times5\text{k}\) matrices was CPU-bound and became a bottleneck in numerical workloads, especially during repeated benchmarking.
+
+\textbf{Task:}
+Design a GPU-based implementation that improves runtime while preserving numerical stability and correctness, and understand what happens inside the "black box" beyond cuBLAS.
+
+\textbf{Action:}
+\begin{itemize}
+\item Profiled the CPU baseline and identified heavy memory movement, serialization in Gaussian-elimination phases, and poor cache reuse.
+\item Implemented block-based Gaussian elimination kernels in Triton and OpenCL for cross-vendor practice.
+\item Applied tiling to increase arithmetic intensity.
+\item Used shared/local memory to cache pivot rows and reduce global-memory pressure.
+\item Carefully synchronized pivot updates across blocks.
+\item Validated correctness with \(A\times A^{-1}=I\) checks and randomized vector tests.
+\end{itemize}
+
+\textbf{Result:}
+\begin{itemize}
+\item achieved \textbf{~1.5\(\times\)} speedup
+\item reduced runtime by \textbf{<50\%} vs optimized CPU baseline
+\item confirmed that memory layout and synchronization patterns dominated performance
+\item gained practical intuition for memory hierarchy effects on throughput
+\end{itemize}
+
+\textbf{Follow-up questions to expect:}
+\begin{itemize}
+\item Was it compute-bound or memory-bound? Mostly memory-bound for large matrices.
+\item How did you know? SM utilization was not maxed while memory throughput stayed high.
+\item Why tiling? Better cache reuse and fewer global-memory loads.
+\item What limited further speedup? Memory bandwidth and synchronization around pivot steps.
+\item What is memory coalescing? Threads in a warp access contiguous memory so loads combine efficiently.
+\item What is register pressure? Too many per-thread variables reduce occupancy and can cause spill to memory.
+\end{itemize}
+
+\subsection{GPU-Accelerated Image Processing Pipeline}
+\textbf{Situation:}
+High-resolution image filters (for example blur and sharpen) were CPU-bound, causing preprocessing bottlenecks.
+
+\textbf{Task:}
+Build a GPU-accelerated version with stable performance across different image sizes.
+
+\textbf{Action:}
+\begin{itemize}
+\item Designed custom CUDA kernels in C++.
+\item Tuned thread-block dimensions to maximize occupancy.
+\item Used shared memory to cache image tiles.
+\item Ensured coalesced pixel access to reduce global-memory latency.
+\item Benchmarked against Python/PyTorch pipelines and validated correctness.
+\item Compared kernel launch configs to minimize divergence.
+\end{itemize}
+
+\textbf{Result:}
+\begin{itemize}
+\item achieved up to \textbf{8\(\times\)} speedup vs CPU baseline
+\item maintained pixel-level numerical parity
+\item showed scaling with image resolution
+\end{itemize}
+
+\textbf{Follow-up questions to expect:}
+\begin{itemize}
+\item How did you choose block size? Empirical tuning (for example 16\(\times\)16 and 32\(\times\)32) to balance occupancy and shared-memory usage.
+\item What is warp divergence? Threads in the same warp take different branches, reducing efficiency.
+\item Was it memory-bound? Yes, pixel operations mainly stress memory bandwidth.
+\item Why 8\(\times\) speedup? Massive parallelism + shared-memory caching + coalesced loads.
+\end{itemize}
+
+\subsection{Convolutional Layer Optimization with Triton}
+\textbf{Situation:}
+cuDNN hides convolution internals, making kernel-level bottlenecks hard to inspect directly.
+
+\textbf{Task:}
+Implement and optimize a 2D convolution kernel to deepen understanding of GPU memory hierarchy and execution mapping.
+
+\textbf{Action:}
+\begin{itemize}
+\item Built custom 2D convolution kernels in Triton.
+\item Experimented with tile sizes, block/thread mapping, shared-memory staging, and loop unrolling.
+\item Compared runtime against PyTorch built-in convolution.
+\item Analyzed memory-throughput vs arithmetic-intensity tradeoffs.
+\end{itemize}
+
+\textbf{Result:}
+\begin{itemize}
+\item achieved up to \textbf{~1.5\(\times\)} speedup on mid-size feature maps
+\item developed intuition for memory-bound vs compute-bound regimes
+\item understood how tiling affects cache reuse and where kernel fusion helps
+\end{itemize}
+
+\textbf{Follow-up questions to expect:}
+\begin{itemize}
+\item Why can convolution be memory-bound? Large feature maps drive high memory traffic relative to compute.
+\item How does tiling help? Increases data reuse in shared memory and reduces global-memory loads.
+\item What is kernel fusion? Combine multiple operations into one kernel to reduce memory traffic.
+\end{itemize}
+
+\end{document}

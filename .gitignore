@@ -20,6 +20,8 @@ CMakeCache.txt
 Makefile
 
 *.tex
+# Keep LaTeX source notes under version control, including subfolders.
+!CudaPractice/notes/**/*.tex
 *.aux
 *.log
 *.fls
